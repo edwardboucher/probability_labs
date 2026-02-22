@@ -1,4 +1,4 @@
-# US Roulette Probability Lab
+# US Roulette Probability Lab v2
 
 An interactive web application for learning probability, statistics, and Python programming through the lens of American roulette.
 
