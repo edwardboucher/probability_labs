@@ -1,0 +1,1471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>US Roulette — Probability Lab</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Playfair+Display:wght@700;900&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg-deep: #0a0c10;
+  --bg-card: #12151c;
+  --bg-elevated: #1a1e28;
+  --green-felt: #0d6b3a;
+  --green-dark: #094d2a;
+  --green-glow: #15c96b;
+  --red: #e23636;
+  --red-glow: #ff4d4d;
+  --black-slot: #1a1a2e;
+  --gold: #d4a843;
+  --gold-glow: #f0c95e;
+  --text-primary: #e8eaf0;
+  --text-muted: #7a8298;
+  --text-dim: #4a5068;
+  --border: #252a36;
+  --accent-blue: #4a90d9;
+  --accent-purple: #8b5cf6;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: var(--bg-deep);
+  color: var(--text-primary);
+  font-family: 'DM Sans', sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Noise overlay */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: url('data:image/svg+xml,<svg viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="4" stitchTiles="stitch"/></filter><rect width="256" height="256" filter="url(%23n)" opacity="0.03"/></svg>');
+  pointer-events: none;
+  z-index: 9999;
+}
+
+.app-header {
+  text-align: center;
+  padding: 40px 20px 20px;
+  position: relative;
+}
+
+.app-header h1 {
+  font-family: 'Playfair Display', serif;
+  font-weight: 900;
+  font-size: 2.8rem;
+  background: linear-gradient(135deg, var(--gold), var(--gold-glow), var(--gold));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  letter-spacing: -1px;
+}
+
+.app-header .subtitle {
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  margin-top: 6px;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 400;
+}
+
+/* Tabs */
+.tab-bar {
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+  padding: 10px 20px;
+  margin-bottom: 20px;
+}
+
+.tab-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  padding: 10px 24px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 600;
+  transition: all 0.25s;
+}
+
+.tab-btn:hover {
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+}
+
+.tab-btn.active {
+  background: linear-gradient(135deg, var(--green-felt), var(--green-dark));
+  color: #fff;
+  border-color: var(--green-glow);
+  box-shadow: 0 0 20px rgba(21, 201, 107, 0.15);
+}
+
+.tab-panel { display: none; padding: 0 20px 40px; max-width: 1400px; margin: 0 auto; }
+.tab-panel.active { display: block; }
+
+/* ========== WHEEL TAB ========== */
+.wheel-layout {
+  display: grid;
+  grid-template-columns: 1fr 420px;
+  gap: 30px;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .wheel-layout { grid-template-columns: 1fr; }
+}
+
+.wheel-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+}
+
+canvas#rouletteWheel {
+  max-width: 420px;
+  width: 100%;
+  filter: drop-shadow(0 0 40px rgba(21, 201, 107, 0.12));
+}
+
+.spin-btn {
+  background: linear-gradient(135deg, var(--gold), #c4942e);
+  color: #1a1000;
+  font-family: 'Playfair Display', serif;
+  font-weight: 700;
+  font-size: 1.3rem;
+  padding: 14px 52px;
+  border: none;
+  border-radius: 50px;
+  cursor: pointer;
+  letter-spacing: 1px;
+  transition: all 0.3s;
+  box-shadow: 0 4px 24px rgba(212, 168, 67, 0.3);
+}
+
+.spin-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 32px rgba(212, 168, 67, 0.45);
+}
+
+.spin-btn:active { transform: translateY(0); }
+
+.spin-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.result-display {
+  text-align: center;
+  min-height: 80px;
+}
+
+.result-number {
+  font-family: 'Playfair Display', serif;
+  font-size: 3rem;
+  font-weight: 900;
+  transition: all 0.3s;
+}
+
+.result-number.red { color: var(--red); text-shadow: 0 0 30px rgba(226, 54, 54, 0.4); }
+.result-number.black { color: #ccc; }
+.result-number.green { color: var(--green-glow); text-shadow: 0 0 30px rgba(21, 201, 107, 0.4); }
+
+.result-info {
+  color: var(--text-muted);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.82rem;
+  margin-top: 4px;
+}
+
+/* Sidebar panel */
+.sidebar-panel {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 24px;
+}
+
+.sidebar-panel h3 {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.2rem;
+  color: var(--gold);
+  margin-bottom: 16px;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.stat-box {
+  background: var(--bg-elevated);
+  border-radius: 10px;
+  padding: 14px;
+  text-align: center;
+}
+
+.stat-box .label {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.stat-box .value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-top: 4px;
+}
+
+.history-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 12px;
+}
+
+.history-chip {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  font-weight: 700;
+  font-family: 'JetBrains Mono', monospace;
+  animation: chipIn 0.3s ease-out;
+}
+
+@keyframes chipIn {
+  from { transform: scale(0); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.history-chip.red { background: var(--red); color: white; }
+.history-chip.black { background: var(--black-slot); color: #aaa; border: 1px solid #333; }
+.history-chip.green { background: var(--green-felt); color: white; }
+
+.freq-bar-container { margin-top: 16px; }
+
+.freq-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  font-size: 0.78rem;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.freq-label { width: 50px; color: var(--text-muted); text-align: right; }
+
+.freq-bar-bg {
+  flex: 1;
+  height: 18px;
+  background: var(--bg-deep);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.freq-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.5s ease;
+}
+
+.freq-pct { width: 46px; color: var(--text-muted); font-size: 0.75rem; }
+
+/* ========== LEARN TAB ========== */
+.learn-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: 24px;
+}
+
+.learn-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 28px;
+  transition: border-color 0.3s;
+}
+
+.learn-card:hover { border-color: var(--green-glow); }
+
+.learn-card h3 {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.2rem;
+  color: var(--gold);
+  margin-bottom: 14px;
+}
+
+.learn-card p, .learn-card li {
+  color: var(--text-muted);
+  line-height: 1.7;
+  font-size: 0.92rem;
+}
+
+.learn-card ul { padding-left: 18px; margin-top: 8px; }
+.learn-card li { margin-bottom: 6px; }
+
+.formula {
+  background: var(--bg-elevated);
+  border-left: 3px solid var(--gold);
+  padding: 16px 20px;
+  border-radius: 0 8px 8px 0;
+  margin: 14px 0;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.88rem;
+  color: var(--green-glow);
+  overflow-x: auto;
+}
+
+.bet-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 12px;
+  font-size: 0.85rem;
+}
+
+.bet-table th {
+  text-align: left;
+  padding: 10px 12px;
+  background: var(--bg-elevated);
+  color: var(--gold);
+  font-weight: 600;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.bet-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-muted);
+}
+
+.bet-table tr:last-child td { border-bottom: none; }
+
+.highlight-red { color: var(--red) !important; }
+.highlight-green { color: var(--green-glow) !important; }
+.highlight-gold { color: var(--gold) !important; }
+
+/* ========== PYTHON TAB ========== */
+.python-section {
+  margin-bottom: 32px;
+}
+
+.python-section h3 {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.3rem;
+  color: var(--gold);
+  margin-bottom: 8px;
+}
+
+.python-section .desc {
+  color: var(--text-muted);
+  margin-bottom: 16px;
+  line-height: 1.6;
+  font-size: 0.92rem;
+}
+
+.code-block {
+  background: #0d1117;
+  border: 1px solid #21262d;
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+
+.code-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 16px;
+  background: #161b22;
+  border-bottom: 1px solid #21262d;
+}
+
+.code-header span {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.copy-btn {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  padding: 4px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.75rem;
+  font-family: 'JetBrains Mono', monospace;
+  transition: all 0.2s;
+}
+
+.copy-btn:hover { color: var(--gold); border-color: var(--gold); }
+
+pre.code-content {
+  padding: 20px;
+  overflow-x: auto;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.82rem;
+  line-height: 1.65;
+  color: #c9d1d9;
+  tab-size: 4;
+}
+
+.code-content .kw { color: #ff7b72; }
+.code-content .fn { color: #d2a8ff; }
+.code-content .str { color: #a5d6ff; }
+.code-content .num { color: #79c0ff; }
+.code-content .cmt { color: #8b949e; font-style: italic; }
+.code-content .op { color: #ff7b72; }
+.code-content .cls { color: #f0c95e; }
+.code-content .dec { color: #79c0ff; }
+.code-content .built { color: #ffa657; }
+
+/* ========== SIMULATOR TAB ========== */
+.sim-layout {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 24px;
+}
+
+@media (max-width: 900px) { .sim-layout { grid-template-columns: 1fr; } }
+
+.sim-controls {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 24px;
+  align-self: start;
+}
+
+.sim-controls h3 {
+  font-family: 'Playfair Display', serif;
+  color: var(--gold);
+  margin-bottom: 16px;
+}
+
+.form-group { margin-bottom: 18px; }
+
+.form-group label {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  font-family: 'JetBrains Mono', monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+}
+
+.form-group select,
+.form-group input {
+  width: 100%;
+  padding: 10px 14px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.9rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.form-group select:focus,
+.form-group input:focus { border-color: var(--green-glow); }
+
+.form-group select option { background: var(--bg-card); }
+
+.run-sim-btn {
+  width: 100%;
+  padding: 13px;
+  background: linear-gradient(135deg, var(--green-felt), var(--green-dark));
+  border: 1px solid var(--green-glow);
+  color: white;
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 700;
+  font-size: 1rem;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.3s;
+  box-shadow: 0 0 20px rgba(21, 201, 107, 0.12);
+}
+
+.run-sim-btn:hover {
+  box-shadow: 0 0 30px rgba(21, 201, 107, 0.25);
+  transform: translateY(-1px);
+}
+
+.sim-results {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 24px;
+}
+
+.sim-results h3 {
+  font-family: 'Playfair Display', serif;
+  color: var(--gold);
+  margin-bottom: 20px;
+}
+
+.sim-stats-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+canvas#simChart {
+  width: 100% !important;
+  height: 300px !important;
+  margin-top: 10px;
+}
+
+.sim-insight {
+  background: var(--bg-elevated);
+  border-left: 3px solid var(--accent-purple);
+  padding: 14px 18px;
+  border-radius: 0 8px 8px 0;
+  margin-top: 20px;
+  font-size: 0.88rem;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+.sim-insight strong { color: var(--accent-purple); }
+
+/* Chart canvas container */
+.chart-container {
+  position: relative;
+  width: 100%;
+  height: 300px;
+}
+</style>
+</head>
+<body>
+
+<div class="app-header">
+  <h1>US Roulette Probability Lab</h1>
+  <div class="subtitle">Learn probability, statistics & Python through the wheel</div>
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="switchTab('wheel')">🎡 Spin & Observe</button>
+  <button class="tab-btn" onclick="switchTab('learn')">📐 Probability Math</button>
+  <button class="tab-btn" onclick="switchTab('python')">🐍 Python Code</button>
+  <button class="tab-btn" onclick="switchTab('simulator')">📊 Monte Carlo Sim</button>
+</div>
+
+<!-- ==================== WHEEL TAB ==================== -->
+<div id="tab-wheel" class="tab-panel active">
+  <div class="wheel-layout">
+    <div class="wheel-container">
+      <canvas id="rouletteWheel" width="420" height="420"></canvas>
+      <button class="spin-btn" id="spinBtn" onclick="spinWheel()">SPIN</button>
+      <div class="result-display">
+        <div class="result-number" id="resultNumber">—</div>
+        <div class="result-info" id="resultInfo">Click SPIN to begin</div>
+      </div>
+    </div>
+
+    <div>
+      <div class="sidebar-panel" style="margin-bottom: 20px;">
+        <h3>Session Statistics</h3>
+        <div class="stats-grid">
+          <div class="stat-box">
+            <div class="label">Total Spins</div>
+            <div class="value" id="totalSpins">0</div>
+          </div>
+          <div class="stat-box">
+            <div class="label">Red %</div>
+            <div class="value highlight-red" id="redPct">0%</div>
+          </div>
+          <div class="stat-box">
+            <div class="label">Black %</div>
+            <div class="value" id="blackPct">0%</div>
+          </div>
+          <div class="stat-box">
+            <div class="label">Green %</div>
+            <div class="value highlight-green" id="greenPct">0%</div>
+          </div>
+        </div>
+
+        <div class="freq-bar-container">
+          <div class="freq-row">
+            <span class="freq-label" style="color:var(--red)">Red</span>
+            <div class="freq-bar-bg"><div class="freq-bar-fill" id="redBar" style="width:0%; background: var(--red);"></div></div>
+            <span class="freq-pct" id="redBarPct">0%</span>
+          </div>
+          <div class="freq-row">
+            <span class="freq-label">Black</span>
+            <div class="freq-bar-bg"><div class="freq-bar-fill" id="blackBar" style="width:0%; background: #555;"></div></div>
+            <span class="freq-pct" id="blackBarPct">0%</span>
+          </div>
+          <div class="freq-row">
+            <span class="freq-label" style="color:var(--green-glow)">Green</span>
+            <div class="freq-bar-bg"><div class="freq-bar-fill" id="greenBar" style="width:0%; background: var(--green-felt);"></div></div>
+            <span class="freq-pct" id="greenBarPct">0%</span>
+          </div>
+          <div class="freq-row" style="margin-top:10px;">
+            <span class="freq-label" style="color:var(--gold); font-size:0.7rem;">Expected</span>
+            <div class="freq-bar-bg" style="position:relative;">
+              <div style="position:absolute; left:47.37%; top:0; bottom:0; width:2px; background:var(--red); opacity:0.6;"></div>
+              <div style="position:absolute; left:47.37%; top:-2px; font-size:0.6rem; color:var(--text-dim);">47.4%</div>
+            </div>
+            <span class="freq-pct" style="font-size:0.7rem; color:var(--text-dim);">theoretical</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="sidebar-panel">
+        <h3>Spin History</h3>
+        <div class="history-strip" id="historyStrip">
+          <span style="color: var(--text-dim); font-size: 0.82rem;">No spins yet</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== LEARN TAB ==================== -->
+<div id="tab-learn" class="tab-panel">
+  <div class="learn-grid">
+
+    <div class="learn-card">
+      <h3>The US Roulette Wheel</h3>
+      <p>A US (American) roulette wheel has <strong class="highlight-gold">38 pockets</strong>:</p>
+      <ul>
+        <li><span class="highlight-red">18 red</span> numbers</li>
+        <li><strong>18 black</strong> numbers</li>
+        <li><span class="highlight-green">2 green</span> pockets: <strong>0</strong> and <strong>00</strong></li>
+      </ul>
+      <p style="margin-top:12px;">The two green pockets give the house its edge. European roulette has only one green pocket (0), making it statistically more favorable for the player.</p>
+    </div>
+
+    <div class="learn-card">
+      <h3>Basic Probability Formula</h3>
+      <p>The probability of any event is:</p>
+      <div class="formula">P(event) = favorable outcomes / total outcomes</div>
+      <p>For a single number in US roulette:</p>
+      <div class="formula">P(single number) = 1/38 ≈ 0.02632 ≈ 2.63%</div>
+      <p>For red/black:</p>
+      <div class="formula">P(red) = 18/38 ≈ 0.4737 ≈ 47.37%</div>
+      <p>Notice it's <em>not</em> 50% — the two green pockets shift the odds toward the house.</p>
+    </div>
+
+    <div class="learn-card">
+      <h3>House Edge Explained</h3>
+      <p>The <strong class="highlight-gold">house edge</strong> is the statistical advantage built into every bet:</p>
+      <div class="formula">House Edge = (2/38) × 100% = 5.26%</div>
+      <p>This means for every $100 wagered on average, the casino expects to keep <strong class="highlight-red">$5.26</strong> over the long run. This is true for <em>every</em> bet on the table (except the top-line bet, which is worse at 7.89%).</p>
+    </div>
+
+    <div class="learn-card">
+      <h3>Expected Value (EV)</h3>
+      <p><strong class="highlight-gold">Expected Value</strong> tells you the average outcome per bet over many trials.</p>
+      <div class="formula">EV = Σ (outcome × probability)</div>
+      <p>For a $1 bet on a single number (pays 35:1):</p>
+      <div class="formula">EV = (35 × 1/38) + (-1 × 37/38)
+EV = 0.9211 - 0.9737
+EV = <span class="highlight-red">-$0.0526</span></div>
+      <p>You lose ~5.3 cents per dollar bet on average. This holds for every standard bet type.</p>
+    </div>
+
+    <div class="learn-card">
+      <h3>The Law of Large Numbers</h3>
+      <p>As the number of trials increases, the observed frequency of an event converges to its theoretical probability.</p>
+      <div class="formula">lim(n→∞) observed_freq/n = P(event)</div>
+      <p>After 10 spins, red might appear 70% of the time. After 10,000 spins, it will be very close to 47.37%. This is why the <strong class="highlight-red">Gambler's Fallacy</strong> is wrong — each spin is independent!</p>
+      <p style="margin-top:8px;">Try this yourself in the <strong>Monte Carlo Sim</strong> tab →</p>
+    </div>
+
+    <div class="learn-card">
+      <h3>Common Bet Types & Odds</h3>
+      <table class="bet-table">
+        <thead>
+          <tr><th>Bet Type</th><th>Payout</th><th>Prob.</th><th>House Edge</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Straight (1 number)</td><td>35:1</td><td>2.63%</td><td>5.26%</td></tr>
+          <tr><td>Split (2 numbers)</td><td>17:1</td><td>5.26%</td><td>5.26%</td></tr>
+          <tr><td>Street (3 numbers)</td><td>11:1</td><td>7.89%</td><td>5.26%</td></tr>
+          <tr><td>Corner (4 numbers)</td><td>8:1</td><td>10.53%</td><td>5.26%</td></tr>
+          <tr><td>Six Line (6 numbers)</td><td>5:1</td><td>15.79%</td><td>5.26%</td></tr>
+          <tr><td>Dozen / Column</td><td>2:1</td><td>31.58%</td><td>5.26%</td></tr>
+          <tr><td>Red / Black / Odd / Even</td><td>1:1</td><td>47.37%</td><td>5.26%</td></tr>
+          <tr><td class="highlight-red">Top Line (0,00,1,2,3)</td><td class="highlight-red">6:1</td><td class="highlight-red">13.16%</td><td class="highlight-red">7.89%</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="learn-card">
+      <h3>Variance & Standard Deviation</h3>
+      <p>While EV tells you the average, <strong class="highlight-gold">variance</strong> measures the spread of outcomes.</p>
+      <div class="formula">Variance = E[X²] - (E[X])²
+Std Dev = √Variance</div>
+      <p>For a $1 red/black bet over <em>n</em> spins:</p>
+      <div class="formula">σ = √(n × p × (1 - p))
+σ = √(n × 0.4737 × 0.5263)</div>
+      <p>High variance means wild short-term swings even when the long-term average is known. This is why people win sometimes — and why they always lose in the long run.</p>
+    </div>
+
+    <div class="learn-card">
+      <h3>The Gambler's Ruin</h3>
+      <p>Even with a small house edge, a player with finite money playing against a casino with (effectively) infinite money will <strong class="highlight-red">always go broke</strong> eventually.</p>
+      <div class="formula">P(ruin) → 1 as time → ∞ (when house has edge)</div>
+      <p>The probability of ruin increases with the number of bets placed and the size of the house edge. This is the mathematical certainty behind why casinos are profitable businesses.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== PYTHON TAB ==================== -->
+<div id="tab-python" class="tab-panel">
+
+  <div class="python-section">
+    <h3>1. Basic Roulette Simulation</h3>
+    <p class="desc">Start with the fundamentals — modeling a roulette wheel in Python using <code>random</code>. This teaches random number generation, lists, and conditional logic.</p>
+    <div class="code-block">
+      <div class="code-header">
+        <span>roulette_basics.py</span>
+        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      </div>
+      <pre class="code-content"><span class="kw">import</span> random
+
+<span class="cmt"># US Roulette: 0, 00, 1-36</span>
+<span class="cmt"># We represent 00 as the string "00" and everything else as ints</span>
+pockets = [<span class="num">0</span>, <span class="str">"00"</span>] + <span class="built">list</span>(<span class="built">range</span>(<span class="num">1</span>, <span class="num">37</span>))
+
+red_numbers = {<span class="num">1</span>,<span class="num">3</span>,<span class="num">5</span>,<span class="num">7</span>,<span class="num">9</span>,<span class="num">12</span>,<span class="num">14</span>,<span class="num">16</span>,<span class="num">18</span>,<span class="num">19</span>,<span class="num">21</span>,<span class="num">23</span>,<span class="num">25</span>,<span class="num">27</span>,<span class="num">30</span>,<span class="num">32</span>,<span class="num">34</span>,<span class="num">36</span>}
+black_numbers = {<span class="num">2</span>,<span class="num">4</span>,<span class="num">6</span>,<span class="num">8</span>,<span class="num">10</span>,<span class="num">11</span>,<span class="num">13</span>,<span class="num">15</span>,<span class="num">17</span>,<span class="num">20</span>,<span class="num">22</span>,<span class="num">24</span>,<span class="num">26</span>,<span class="num">28</span>,<span class="num">29</span>,<span class="num">31</span>,<span class="num">33</span>,<span class="num">35</span>}
+
+<span class="kw">def</span> <span class="fn">spin</span>():
+    <span class="str">"""Simulate a single spin of the roulette wheel."""</span>
+    <span class="kw">return</span> random.choice(pockets)
+
+<span class="kw">def</span> <span class="fn">get_color</span>(result):
+    <span class="str">"""Determine the color of a roulette result."""</span>
+    <span class="kw">if</span> result <span class="kw">in</span> (<span class="num">0</span>, <span class="str">"00"</span>):
+        <span class="kw">return</span> <span class="str">"green"</span>
+    <span class="kw">elif</span> result <span class="kw">in</span> red_numbers:
+        <span class="kw">return</span> <span class="str">"red"</span>
+    <span class="kw">else</span>:
+        <span class="kw">return</span> <span class="str">"black"</span>
+
+<span class="cmt"># Run 10 spins</span>
+<span class="kw">for</span> i <span class="kw">in</span> <span class="built">range</span>(<span class="num">10</span>):
+    result = spin()
+    color = get_color(result)
+    <span class="built">print</span>(<span class="str">f"Spin </span>{i+1}<span class="str">: </span>{result}<span class="str"> (</span>{color}<span class="str">)"</span>)</pre>
+    </div>
+  </div>
+
+  <div class="python-section">
+    <h3>2. Calculating Probabilities</h3>
+    <p class="desc">Use Python to compute exact probabilities and compare them with simulated frequencies. This covers the <code>fractions</code> module and empirical vs theoretical probability.</p>
+    <div class="code-block">
+      <div class="code-header">
+        <span>probability_calc.py</span>
+        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      </div>
+      <pre class="code-content"><span class="kw">from</span> fractions <span class="kw">import</span> Fraction
+<span class="kw">import</span> random
+
+TOTAL_POCKETS = <span class="num">38</span>  <span class="cmt"># US Roulette</span>
+
+<span class="cmt"># Exact probabilities using Fraction for precision</span>
+bets = {
+    <span class="str">"Straight (1 number)"</span>: Fraction(<span class="num">1</span>, <span class="num">38</span>),
+    <span class="str">"Split (2 numbers)"</span>:   Fraction(<span class="num">2</span>, <span class="num">38</span>),
+    <span class="str">"Street (3 numbers)"</span>:  Fraction(<span class="num">3</span>, <span class="num">38</span>),
+    <span class="str">"Corner (4 numbers)"</span>:  Fraction(<span class="num">4</span>, <span class="num">38</span>),
+    <span class="str">"Six Line (6)"</span>:        Fraction(<span class="num">6</span>, <span class="num">38</span>),
+    <span class="str">"Dozen (12)"</span>:          Fraction(<span class="num">12</span>, <span class="num">38</span>),
+    <span class="str">"Red/Black (18)"</span>:      Fraction(<span class="num">18</span>, <span class="num">38</span>),
+}
+
+<span class="built">print</span>(<span class="str">"Bet Type                 Exact Fraction    Decimal    Pct"</span>)
+<span class="built">print</span>(<span class="str">"─"</span> * <span class="num">65</span>)
+<span class="kw">for</span> name, prob <span class="kw">in</span> bets.items():
+    <span class="built">print</span>(<span class="str">f"</span>{name:<span class="num">25</span>}<span class="str"> </span>{<span class="built">str</span>(prob):<span class="num">17</span>}<span class="str"> </span>{<span class="built">float</span>(prob):<span class="num">10.6</span>f}<span class="str"> </span>{<span class="built">float</span>(prob)*<span class="num">100</span>:<span class="num">6.2</span>f}<span class="str">%"</span>)
+
+<span class="cmt"># Empirical test: Simulate 100,000 spins for red/black</span>
+pockets = [<span class="num">0</span>, <span class="str">"00"</span>] + <span class="built">list</span>(<span class="built">range</span>(<span class="num">1</span>, <span class="num">37</span>))
+red = {<span class="num">1</span>,<span class="num">3</span>,<span class="num">5</span>,<span class="num">7</span>,<span class="num">9</span>,<span class="num">12</span>,<span class="num">14</span>,<span class="num">16</span>,<span class="num">18</span>,<span class="num">19</span>,<span class="num">21</span>,<span class="num">23</span>,<span class="num">25</span>,<span class="num">27</span>,<span class="num">30</span>,<span class="num">32</span>,<span class="num">34</span>,<span class="num">36</span>}
+
+N = <span class="num">100_000</span>
+red_count = <span class="built">sum</span>(<span class="num">1</span> <span class="kw">for</span> _ <span class="kw">in</span> <span class="built">range</span>(N) <span class="kw">if</span> random.choice(pockets) <span class="kw">in</span> red)
+
+<span class="built">print</span>(<span class="str">f"\nEmpirical red frequency ({N:,} spins): </span>{red_count/N:<span class="num">.4</span>f}<span class="str">"</span>)
+<span class="built">print</span>(<span class="str">f"Theoretical probability:               </span>{<span class="num">18</span>/<span class="num">38</span>:<span class="num">.4</span>f}<span class="str">"</span>)
+<span class="built">print</span>(<span class="str">f"Difference:                            </span>{<span class="built">abs</span>(red_count/N - <span class="num">18</span>/<span class="num">38</span>):<span class="num">.4</span>f}<span class="str">"</span>)</pre>
+    </div>
+  </div>
+
+  <div class="python-section">
+    <h3>3. Expected Value Calculator</h3>
+    <p class="desc">Build a function that calculates EV for any roulette bet. Demonstrates functions, dictionaries, and mathematical thinking.</p>
+    <div class="code-block">
+      <div class="code-header">
+        <span>expected_value.py</span>
+        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      </div>
+      <pre class="code-content"><span class="kw">def</span> <span class="fn">expected_value</span>(win_payout, win_prob, bet_amount=<span class="num">1</span>):
+    <span class="str">"""
+    Calculate the expected value of a roulette bet.
+    
+    Args:
+        win_payout: Amount won (not including original bet back)
+        win_prob: Probability of winning (0-1)
+        bet_amount: Amount wagered
+    
+    Returns:
+        Expected value per bet
+    """</span>
+    lose_prob = <span class="num">1</span> - win_prob
+    ev = (win_payout * win_prob) + (-bet_amount * lose_prob)
+    <span class="kw">return</span> ev
+
+<span class="cmt"># Calculate EV for all standard US roulette bets</span>
+bets = [
+    (<span class="str">"Straight Up"</span>,  <span class="num">35</span>, <span class="num">1</span>/<span class="num">38</span>),
+    (<span class="str">"Split"</span>,        <span class="num">17</span>, <span class="num">2</span>/<span class="num">38</span>),
+    (<span class="str">"Street"</span>,       <span class="num">11</span>, <span class="num">3</span>/<span class="num">38</span>),
+    (<span class="str">"Corner"</span>,        <span class="num">8</span>, <span class="num">4</span>/<span class="num">38</span>),
+    (<span class="str">"Six Line"</span>,      <span class="num">5</span>, <span class="num">6</span>/<span class="num">38</span>),
+    (<span class="str">"Dozen/Column"</span>,  <span class="num">2</span>, <span class="num">12</span>/<span class="num">38</span>),
+    (<span class="str">"Red/Black"</span>,     <span class="num">1</span>, <span class="num">18</span>/<span class="num">38</span>),
+    (<span class="str">"Top Line"</span>,      <span class="num">6</span>, <span class="num">5</span>/<span class="num">38</span>),  <span class="cmt"># worst bet!</span>
+]
+
+<span class="built">print</span>(<span class="str">"Bet              Payout   Win Prob   EV per $1    House Edge"</span>)
+<span class="built">print</span>(<span class="str">"─"</span> * <span class="num">62</span>)
+<span class="kw">for</span> name, payout, prob <span class="kw">in</span> bets:
+    ev = expected_value(payout, prob)
+    house_edge = -ev * <span class="num">100</span>
+    <span class="built">print</span>(<span class="str">f"</span>{name:<span class="num">17</span>}<span class="str"> </span>{payout:<span class="num">5</span>d}<span class="str">:1   </span>{prob:<span class="num">8.4</span>f}<span class="str">   $</span>{ev:<span class="num">+.4</span>f}<span class="str">      </span>{house_edge:<span class="num">.2</span>f}<span class="str">%"</span>)
+
+<span class="cmt"># How much do you expect to lose over an evening?</span>
+bets_per_hour = <span class="num">40</span>
+hours_playing = <span class="num">3</span>
+bet_size = <span class="num">10</span>  <span class="cmt"># dollars</span>
+total_bets = bets_per_hour * hours_playing
+house_edge_pct = <span class="num">5.26</span> / <span class="num">100</span>
+
+expected_loss = total_bets * bet_size * house_edge_pct
+<span class="built">print</span>(<span class="str">f"\n💸 Playing </span>{hours_playing}<span class="str">hrs at $</span>{bet_size}<span class="str">/bet, </span>{bets_per_hour}<span class="str"> bets/hr:"</span>)
+<span class="built">print</span>(<span class="str">f"   Expected loss: $</span>{expected_loss:<span class="num">.2</span>f}<span class="str">"</span>)</pre>
+    </div>
+  </div>
+
+  <div class="python-section">
+    <h3>4. Monte Carlo Simulation with Visualization</h3>
+    <p class="desc">Run thousands of simulated games and visualize the results using <code>matplotlib</code>. This is the gold standard technique for understanding probabilistic systems.</p>
+    <div class="code-block">
+      <div class="code-header">
+        <span>monte_carlo_roulette.py</span>
+        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      </div>
+      <pre class="code-content"><span class="kw">import</span> random
+<span class="kw">import</span> matplotlib.pyplot <span class="kw">as</span> plt
+<span class="kw">import</span> numpy <span class="kw">as</span> np
+
+<span class="kw">def</span> <span class="fn">simulate_session</span>(n_spins, bet_type=<span class="str">"red"</span>, bet_size=<span class="num">10</span>):
+    <span class="str">"""Simulate a roulette session and track bankroll over time."""</span>
+    pockets = [<span class="num">0</span>, <span class="str">"00"</span>] + <span class="built">list</span>(<span class="built">range</span>(<span class="num">1</span>, <span class="num">37</span>))
+    red = {<span class="num">1</span>,<span class="num">3</span>,<span class="num">5</span>,<span class="num">7</span>,<span class="num">9</span>,<span class="num">12</span>,<span class="num">14</span>,<span class="num">16</span>,<span class="num">18</span>,<span class="num">19</span>,<span class="num">21</span>,<span class="num">23</span>,<span class="num">25</span>,<span class="num">27</span>,<span class="num">30</span>,<span class="num">32</span>,<span class="num">34</span>,<span class="num">36</span>}
+    
+    bankroll = <span class="num">0</span>  <span class="cmt"># track cumulative profit/loss</span>
+    history = [<span class="num">0</span>]
+    
+    <span class="kw">for</span> _ <span class="kw">in</span> <span class="built">range</span>(n_spins):
+        result = random.choice(pockets)
+        <span class="kw">if</span> bet_type == <span class="str">"red"</span>:
+            <span class="kw">if</span> result <span class="kw">in</span> red:
+                bankroll += bet_size  <span class="cmt"># win 1:1</span>
+            <span class="kw">else</span>:
+                bankroll -= bet_size
+        history.append(bankroll)
+    
+    <span class="kw">return</span> history
+
+<span class="cmt"># Run multiple sessions to see the spread of outcomes</span>
+n_sessions = <span class="num">100</span>
+n_spins = <span class="num">500</span>
+
+plt.figure(figsize=(<span class="num">14</span>, <span class="num">8</span>))
+plt.style.use(<span class="str">'dark_background'</span>)
+
+all_final = []
+<span class="kw">for</span> i <span class="kw">in</span> <span class="built">range</span>(n_sessions):
+    history = simulate_session(n_spins)
+    all_final.append(history[-<span class="num">1</span>])
+    alpha = <span class="num">0.15</span> <span class="kw">if</span> n_sessions > <span class="num">20</span> <span class="kw">else</span> <span class="num">0.5</span>
+    color = <span class="str">'#15c96b'</span> <span class="kw">if</span> history[-<span class="num">1</span>] >= <span class="num">0</span> <span class="kw">else</span> <span class="str">'#e23636'</span>
+    plt.plot(history, alpha=alpha, linewidth=<span class="num">0.8</span>, color=color)
+
+<span class="cmt"># Expected value line</span>
+ev_per_spin = -<span class="num">10</span> * (<span class="num">2</span>/<span class="num">38</span>)  <span class="cmt"># EV for $10 red bet</span>
+ev_line = [ev_per_spin * i <span class="kw">for</span> i <span class="kw">in</span> <span class="built">range</span>(n_spins + <span class="num">1</span>)]
+plt.plot(ev_line, color=<span class="str">'#d4a843'</span>, linewidth=<span class="num">2.5</span>, label=<span class="str">'Expected Value'</span>)
+
+plt.axhline(y=<span class="num">0</span>, color=<span class="str">'white'</span>, linewidth=<span class="num">0.5</span>, alpha=<span class="num">0.3</span>)
+plt.xlabel(<span class="str">'Spin Number'</span>)
+plt.ylabel(<span class="str">'Profit / Loss ($)'</span>)
+plt.title(<span class="str">f'Monte Carlo: {n_sessions} Sessions × {n_spins} Spins ($10 Red Bets)'</span>)
+plt.legend()
+
+<span class="cmt"># Stats</span>
+winners = <span class="built">sum</span>(<span class="num">1</span> <span class="kw">for</span> f <span class="kw">in</span> all_final <span class="kw">if</span> f > <span class="num">0</span>)
+<span class="built">print</span>(<span class="str">f"Sessions profitable:  </span>{winners}<span class="str">/</span>{n_sessions}<span class="str"> (</span>{winners/n_sessions*<span class="num">100</span>:<span class="num">.1</span>f}<span class="str">%)"</span>)
+<span class="built">print</span>(<span class="str">f"Average final P/L:   $</span>{np.mean(all_final):<span class="num">.2</span>f}<span class="str">"</span>)
+<span class="built">print</span>(<span class="str">f"Std deviation:       $</span>{np.std(all_final):<span class="num">.2</span>f}<span class="str">"</span>)
+<span class="built">print</span>(<span class="str">f"Best session:        $</span>{<span class="built">max</span>(all_final):<span class="num">.2</span>f}<span class="str">"</span>)
+<span class="built">print</span>(<span class="str">f"Worst session:       $</span>{<span class="built">min</span>(all_final):<span class="num">.2</span>f}<span class="str">"</span>)
+
+plt.tight_layout()
+plt.savefig(<span class="str">'monte_carlo_roulette.png'</span>, dpi=<span class="num">150</span>)
+plt.show()</pre>
+    </div>
+  </div>
+
+  <div class="python-section">
+    <h3>5. Convergence & Law of Large Numbers</h3>
+    <p class="desc">Watch how the observed red frequency converges to the theoretical value as sample size grows. A powerful visual proof of the Law of Large Numbers.</p>
+    <div class="code-block">
+      <div class="code-header">
+        <span>convergence.py</span>
+        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+      </div>
+      <pre class="code-content"><span class="kw">import</span> random
+<span class="kw">import</span> matplotlib.pyplot <span class="kw">as</span> plt
+
+pockets = [<span class="num">0</span>, <span class="str">"00"</span>] + <span class="built">list</span>(<span class="built">range</span>(<span class="num">1</span>, <span class="num">37</span>))
+red = {<span class="num">1</span>,<span class="num">3</span>,<span class="num">5</span>,<span class="num">7</span>,<span class="num">9</span>,<span class="num">12</span>,<span class="num">14</span>,<span class="num">16</span>,<span class="num">18</span>,<span class="num">19</span>,<span class="num">21</span>,<span class="num">23</span>,<span class="num">25</span>,<span class="num">27</span>,<span class="num">30</span>,<span class="num">32</span>,<span class="num">34</span>,<span class="num">36</span>}
+
+N = <span class="num">10_000</span>
+theoretical = <span class="num">18</span> / <span class="num">38</span>
+
+<span class="cmt"># Track running frequency</span>
+red_count = <span class="num">0</span>
+frequencies = []
+
+<span class="kw">for</span> i <span class="kw">in</span> <span class="built">range</span>(<span class="num">1</span>, N + <span class="num">1</span>):
+    result = random.choice(pockets)
+    <span class="kw">if</span> result <span class="kw">in</span> red:
+        red_count += <span class="num">1</span>
+    frequencies.append(red_count / i)
+
+plt.figure(figsize=(<span class="num">12</span>, <span class="num">6</span>))
+plt.style.use(<span class="str">'dark_background'</span>)
+plt.plot(frequencies, color=<span class="str">'#e23636'</span>, alpha=<span class="num">0.8</span>, linewidth=<span class="num">0.8</span>)
+plt.axhline(y=theoretical, color=<span class="str">'#d4a843'</span>, linestyle=<span class="str">'--'</span>,
+            linewidth=<span class="num">2</span>, label=<span class="str">f'Theoretical: </span>{theoretical:<span class="num">.4</span>f}<span class="str">'</span>)
+plt.xlabel(<span class="str">'Number of Spins'</span>)
+plt.ylabel(<span class="str">'Observed Red Frequency'</span>)
+plt.title(<span class="str">'Law of Large Numbers: Red Frequency Convergence'</span>)
+plt.legend()
+plt.tight_layout()
+plt.savefig(<span class="str">'convergence.png'</span>, dpi=<span class="num">150</span>)
+plt.show()</pre>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SIMULATOR TAB ==================== -->
+<div id="tab-simulator" class="tab-panel">
+  <div class="sim-layout">
+    <div class="sim-controls">
+      <h3>Simulation Config</h3>
+      <div class="form-group">
+        <label>Bet Type</label>
+        <select id="simBetType">
+          <option value="red">Red / Black (1:1)</option>
+          <option value="dozen">Dozen / Column (2:1)</option>
+          <option value="straight">Straight Up (35:1)</option>
+          <option value="street">Street (11:1)</option>
+          <option value="corner">Corner (8:1)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Bet Size ($)</label>
+        <input type="number" id="simBetSize" value="10" min="1" max="1000">
+      </div>
+      <div class="form-group">
+        <label>Spins per Session</label>
+        <input type="number" id="simSpins" value="200" min="10" max="5000">
+      </div>
+      <div class="form-group">
+        <label>Number of Sessions</label>
+        <input type="number" id="simSessions" value="50" min="1" max="500">
+      </div>
+      <button class="run-sim-btn" onclick="runSimulation()">Run Monte Carlo</button>
+    </div>
+
+    <div class="sim-results">
+      <h3>Simulation Results</h3>
+      <div class="sim-stats-row" id="simStatsRow">
+        <div class="stat-box">
+          <div class="label">Avg P/L</div>
+          <div class="value" id="simAvgPL">—</div>
+        </div>
+        <div class="stat-box">
+          <div class="label">Win Rate</div>
+          <div class="value" id="simWinRate">—</div>
+        </div>
+        <div class="stat-box">
+          <div class="label">Best</div>
+          <div class="value highlight-green" id="simBest">—</div>
+        </div>
+        <div class="stat-box">
+          <div class="label">Worst</div>
+          <div class="value highlight-red" id="simWorst">—</div>
+        </div>
+        <div class="stat-box">
+          <div class="label">Std Dev</div>
+          <div class="value" id="simStdDev">—</div>
+        </div>
+        <div class="stat-box">
+          <div class="label">House Edge</div>
+          <div class="value highlight-gold" id="simHouseEdge">—</div>
+        </div>
+      </div>
+      <div class="chart-container">
+        <canvas id="simChart"></canvas>
+      </div>
+      <div class="sim-insight" id="simInsight">
+        Configure your simulation and click <strong>Run Monte Carlo</strong> to see probability in action. Try comparing different bet types and session lengths to understand how variance and house edge interact.
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ==================== US ROULETTE DATA ====================
+const WHEEL_ORDER = [0,28,9,26,30,11,7,20,32,17,5,22,34,15,3,24,36,13,1,
+                     '00',27,10,25,29,12,8,19,31,18,6,21,33,16,4,23,35,14,2];
+const RED = new Set([1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36]);
+const BLACK = new Set([2,4,6,8,10,11,13,15,17,20,22,24,26,28,29,31,33,35]);
+
+function getColor(n) {
+  if (n === 0 || n === '00') return 'green';
+  if (RED.has(Number(n))) return 'red';
+  return 'black';
+}
+
+// ==================== WHEEL DRAWING ====================
+const canvas = document.getElementById('rouletteWheel');
+const ctx = canvas.getContext('2d');
+const cx = 210, cy = 210, outerR = 195, innerR = 130, textR = 163;
+let currentAngle = 0;
+let spinning = false;
+
+function drawWheel(angle = 0) {
+  ctx.clearRect(0, 0, 420, 420);
+  const sliceAngle = (2 * Math.PI) / 38;
+
+  // Outer ring shadow
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(cx, cy, outerR + 5, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(0,0,0,0.4)';
+  ctx.fill();
+  ctx.restore();
+
+  for (let i = 0; i < 38; i++) {
+    const startAngle = angle + i * sliceAngle;
+    const endAngle = startAngle + sliceAngle;
+    const num = WHEEL_ORDER[i];
+    const color = getColor(num);
+
+    // Slice
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, outerR, startAngle, endAngle);
+    ctx.closePath();
+
+    if (color === 'red') ctx.fillStyle = '#c62828';
+    else if (color === 'green') ctx.fillStyle = '#1b7a3d';
+    else ctx.fillStyle = '#1a1a2e';
+    ctx.fill();
+    ctx.strokeStyle = '#2a2a3a';
+    ctx.lineWidth = 0.5;
+    ctx.stroke();
+
+    // Number text
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(startAngle + sliceAngle / 2);
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 11px "JetBrains Mono", monospace';
+    ctx.fillText(String(num), textR, 0);
+    ctx.restore();
+  }
+
+  // Inner circle
+  ctx.beginPath();
+  ctx.arc(cx, cy, innerR, 0, Math.PI * 2);
+  const grad = ctx.createRadialGradient(cx, cy, 20, cx, cy, innerR);
+  grad.addColorStop(0, '#2a3040');
+  grad.addColorStop(1, '#151920');
+  ctx.fillStyle = grad;
+  ctx.fill();
+  ctx.strokeStyle = '#d4a843';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // Center decoration
+  ctx.beginPath();
+  ctx.arc(cx, cy, 40, 0, Math.PI * 2);
+  ctx.fillStyle = '#1a1e28';
+  ctx.fill();
+  ctx.strokeStyle = '#d4a84388';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  ctx.font = 'bold 14px "Playfair Display", serif';
+  ctx.fillStyle = '#d4a843';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('US', cx, cy - 7);
+  ctx.font = '10px "JetBrains Mono", monospace';
+  ctx.fillStyle = '#8a7a5a';
+  ctx.fillText('ROULETTE', cx, cy + 8);
+
+  // Pointer (top)
+  ctx.beginPath();
+  ctx.moveTo(cx, cy - outerR - 12);
+  ctx.lineTo(cx - 10, cy - outerR + 8);
+  ctx.lineTo(cx + 10, cy - outerR + 8);
+  ctx.closePath();
+  ctx.fillStyle = '#d4a843';
+  ctx.fill();
+  ctx.strokeStyle = '#b8922e';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+}
+
+drawWheel();
+
+// ==================== SPIN LOGIC ====================
+let history = [];
+let stats = { red: 0, black: 0, green: 0, total: 0 };
+
+function spinWheel() {
+  if (spinning) return;
+  spinning = true;
+  document.getElementById('spinBtn').disabled = true;
+
+  const sliceAngle = (2 * Math.PI) / 38;
+  const winIndex = Math.floor(Math.random() * 38);
+  // The pointer is at top (- PI/2). We need the winning slice center to align there.
+  const targetAngle = -(winIndex * sliceAngle + sliceAngle / 2) - Math.PI / 2;
+  const fullRotations = (6 + Math.random() * 4) * Math.PI * 2;
+  const finalAngle = currentAngle + fullRotations + (targetAngle - (currentAngle % (Math.PI * 2)));
+
+  const duration = 4000 + Math.random() * 1500;
+  const startTime = performance.now();
+  const startAngle = currentAngle;
+
+  function animate(now) {
+    const elapsed = now - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+    // Easing: cubic ease-out
+    const eased = 1 - Math.pow(1 - progress, 3);
+    currentAngle = startAngle + (finalAngle - startAngle) * eased;
+    drawWheel(currentAngle);
+
+    if (progress < 1) {
+      requestAnimationFrame(animate);
+    } else {
+      currentAngle = finalAngle;
+      spinning = false;
+      document.getElementById('spinBtn').disabled = false;
+      onSpinComplete(WHEEL_ORDER[winIndex]);
+    }
+  }
+  requestAnimationFrame(animate);
+}
+
+function onSpinComplete(result) {
+  const color = getColor(result);
+  stats.total++;
+  stats[color]++;
+  history.unshift({ number: result, color });
+
+  // Result display
+  const numEl = document.getElementById('resultNumber');
+  numEl.textContent = String(result);
+  numEl.className = 'result-number ' + color;
+
+  const props = [];
+  if (color !== 'green') {
+    const n = Number(result);
+    props.push(color);
+    props.push(n % 2 === 0 ? 'even' : 'odd');
+    props.push(n <= 18 ? '1-18' : '19-36');
+    if (n <= 12) props.push('1st dozen');
+    else if (n <= 24) props.push('2nd dozen');
+    else props.push('3rd dozen');
+  } else {
+    props.push('green', 'house pocket');
+  }
+  document.getElementById('resultInfo').textContent = props.join(' · ');
+
+  // Stats
+  document.getElementById('totalSpins').textContent = stats.total;
+  const rPct = ((stats.red / stats.total) * 100).toFixed(1);
+  const bPct = ((stats.black / stats.total) * 100).toFixed(1);
+  const gPct = ((stats.green / stats.total) * 100).toFixed(1);
+  document.getElementById('redPct').textContent = rPct + '%';
+  document.getElementById('blackPct').textContent = bPct + '%';
+  document.getElementById('greenPct').textContent = gPct + '%';
+
+  document.getElementById('redBar').style.width = rPct + '%';
+  document.getElementById('blackBar').style.width = bPct + '%';
+  document.getElementById('greenBar').style.width = gPct + '%';
+  document.getElementById('redBarPct').textContent = rPct + '%';
+  document.getElementById('blackBarPct').textContent = bPct + '%';
+  document.getElementById('greenBarPct').textContent = gPct + '%';
+
+  // History chips
+  const strip = document.getElementById('historyStrip');
+  if (stats.total === 1) strip.innerHTML = '';
+  const chip = document.createElement('div');
+  chip.className = 'history-chip ' + color;
+  chip.textContent = String(result);
+  strip.prepend(chip);
+  // Limit to 60 chips
+  while (strip.children.length > 60) strip.removeChild(strip.lastChild);
+}
+
+// ==================== TAB SWITCHING ====================
+function switchTab(name) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  event.target.classList.add('active');
+}
+
+// ==================== COPY CODE ====================
+function copyCode(btn) {
+  const pre = btn.closest('.code-block').querySelector('pre');
+  const text = pre.textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = 'Copied!';
+    setTimeout(() => btn.textContent = 'Copy', 2000);
+  });
+}
+
+// ==================== MONTE CARLO SIMULATOR ====================
+const BET_CONFIG = {
+  red:      { payout: 1, winSlots: 18, name: 'Red/Black' },
+  dozen:    { payout: 2, winSlots: 12, name: 'Dozen/Column' },
+  straight: { payout: 35, winSlots: 1, name: 'Straight Up' },
+  street:   { payout: 11, winSlots: 3, name: 'Street' },
+  corner:   { payout: 8, winSlots: 4, name: 'Corner' },
+};
+
+let simChartInstance = null;
+
+function runSimulation() {
+  const betType = document.getElementById('simBetType').value;
+  const betSize = parseInt(document.getElementById('simBetSize').value) || 10;
+  const nSpins = parseInt(document.getElementById('simSpins').value) || 200;
+  const nSessions = parseInt(document.getElementById('simSessions').value) || 50;
+  const config = BET_CONFIG[betType];
+
+  const winProb = config.winSlots / 38;
+  const allSessions = [];
+  const finals = [];
+
+  for (let s = 0; s < nSessions; s++) {
+    const session = [0];
+    let bankroll = 0;
+    for (let i = 0; i < nSpins; i++) {
+      const roll = Math.random();
+      if (roll < winProb) {
+        bankroll += betSize * config.payout;
+      } else {
+        bankroll -= betSize;
+      }
+      session.push(bankroll);
+    }
+    allSessions.push(session);
+    finals.push(bankroll);
+  }
+
+  // Stats
+  const avg = finals.reduce((a, b) => a + b, 0) / finals.length;
+  const winners = finals.filter(f => f > 0).length;
+  const best = Math.max(...finals);
+  const worst = Math.min(...finals);
+  const variance = finals.reduce((s, v) => s + (v - avg) ** 2, 0) / finals.length;
+  const stddev = Math.sqrt(variance);
+  const theoreticalEdge = ((38 - config.winSlots * (config.payout + 1)) / 38 * 100);
+
+  document.getElementById('simAvgPL').textContent = '$' + avg.toFixed(0);
+  document.getElementById('simAvgPL').style.color = avg >= 0 ? 'var(--green-glow)' : 'var(--red)';
+  document.getElementById('simWinRate').textContent = ((winners / nSessions) * 100).toFixed(1) + '%';
+  document.getElementById('simBest').textContent = '$' + best.toFixed(0);
+  document.getElementById('simWorst').textContent = '$' + worst.toFixed(0);
+  document.getElementById('simStdDev').textContent = '$' + stddev.toFixed(0);
+  document.getElementById('simHouseEdge').textContent = theoreticalEdge.toFixed(2) + '%';
+
+  // Draw chart with plain canvas
+  drawSimChart(allSessions, nSpins, betSize, config);
+
+  // Insight
+  const totalWagered = betSize * nSpins;
+  const observedEdge = (-avg / totalWagered * 100).toFixed(2);
+  document.getElementById('simInsight').innerHTML = `
+    <strong>Analysis:</strong> Over ${nSessions} sessions of ${nSpins} spins each betting $${betSize} on ${config.name}:
+    The average player lost <strong>$${Math.abs(avg).toFixed(0)}</strong> per session.
+    <strong>${winners}</strong> of ${nSessions} sessions (${((winners/nSessions)*100).toFixed(1)}%) ended profitable.
+    Observed house edge: <strong>${observedEdge}%</strong> vs theoretical <strong>${theoreticalEdge.toFixed(2)}%</strong>.
+    Total wagered per session: $${totalWagered.toLocaleString()}.
+    ${nSpins < 100 ? '<br><em>Try increasing spins to see the house edge converge!</em>' : ''}
+  `;
+}
+
+function drawSimChart(allSessions, nSpins, betSize, config) {
+  const canvas = document.getElementById('simChart');
+  const container = canvas.parentElement;
+  canvas.width = container.clientWidth * 2;
+  canvas.height = 300 * 2;
+  canvas.style.width = container.clientWidth + 'px';
+  canvas.style.height = '300px';
+
+  const ctx = canvas.getContext('2d');
+  ctx.scale(2, 2);
+  const W = container.clientWidth;
+  const H = 300;
+  const pad = { top: 20, right: 20, bottom: 35, left: 60 };
+  const plotW = W - pad.left - pad.right;
+  const plotH = H - pad.top - pad.bottom;
+
+  ctx.clearRect(0, 0, W, H);
+
+  // Find range
+  let minVal = 0, maxVal = 0;
+  allSessions.forEach(s => {
+    s.forEach(v => {
+      if (v < minVal) minVal = v;
+      if (v > maxVal) maxVal = v;
+    });
+  });
+  const range = maxVal - minVal || 1;
+  const yPad = range * 0.1;
+  minVal -= yPad;
+  maxVal += yPad;
+
+  function toX(i) { return pad.left + (i / nSpins) * plotW; }
+  function toY(v) { return pad.top + plotH - ((v - minVal) / (maxVal - minVal)) * plotH; }
+
+  // Grid
+  ctx.strokeStyle = '#ffffff10';
+  ctx.lineWidth = 0.5;
+  const yTicks = 5;
+  for (let i = 0; i <= yTicks; i++) {
+    const val = minVal + (maxVal - minVal) * (i / yTicks);
+    const y = toY(val);
+    ctx.beginPath();
+    ctx.moveTo(pad.left, y);
+    ctx.lineTo(W - pad.right, y);
+    ctx.stroke();
+
+    ctx.fillStyle = '#7a8298';
+    ctx.font = '10px "JetBrains Mono"';
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('$' + val.toFixed(0), pad.left - 8, y);
+  }
+
+  // Zero line
+  if (minVal < 0 && maxVal > 0) {
+    ctx.strokeStyle = '#ffffff30';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(pad.left, toY(0));
+    ctx.lineTo(W - pad.right, toY(0));
+    ctx.stroke();
+  }
+
+  // Session lines
+  allSessions.forEach(session => {
+    const final = session[session.length - 1];
+    const baseColor = final >= 0 ? [21, 201, 107] : [226, 54, 54];
+    ctx.strokeStyle = `rgba(${baseColor.join(',')}, 0.12)`;
+    ctx.lineWidth = 0.7;
+    ctx.beginPath();
+    for (let i = 0; i <= nSpins; i++) {
+      const x = toX(i);
+      const y = toY(session[i]);
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+  });
+
+  // EV line
+  const evPerSpin = -betSize * ((38 - config.winSlots * (config.payout + 1)) / 38);
+  ctx.strokeStyle = '#d4a843';
+  ctx.lineWidth = 2;
+  ctx.setLineDash([6, 3]);
+  ctx.beginPath();
+  for (let i = 0; i <= nSpins; i++) {
+    const x = toX(i);
+    const y = toY(evPerSpin * i);
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Labels
+  ctx.fillStyle = '#d4a843';
+  ctx.font = '10px "JetBrains Mono"';
+  ctx.textAlign = 'left';
+  ctx.fillText('Expected Value', toX(nSpins * 0.6), toY(evPerSpin * nSpins * 0.6) - 10);
+
+  // X axis labels
+  ctx.fillStyle = '#7a8298';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'top';
+  const xSteps = 5;
+  for (let i = 0; i <= xSteps; i++) {
+    const spin = Math.round((nSpins / xSteps) * i);
+    ctx.fillText(spin, toX(spin), H - pad.bottom + 10);
+  }
+  ctx.fillText('Spin #', W / 2, H - 8);
+}
+
+// Handle resize for chart
+window.addEventListener('resize', () => {
+  if (document.getElementById('tab-simulator').classList.contains('active')) {
+    const canvas = document.getElementById('simChart');
+    if (canvas.width > 0) {
+      // Re-run if chart exists
+    }
+  }
+});
+</script>
+
+</body>
+</html>
