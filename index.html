@@ -3,1469 +3,894 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>US Roulette — Probability Lab</title>
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Playfair+Display:wght@700;900&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<title>Probability Lab — Interactive Math & Python</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Outfit:wght@400;500;600;700;800;900&family=Fraunces:opsz,wght@9..144,700;9..144,900&display=swap" rel="stylesheet">
 <style>
-:root {
-  --bg-deep: #0a0c10;
-  --bg-card: #12151c;
-  --bg-elevated: #1a1e28;
-  --green-felt: #0d6b3a;
-  --green-dark: #094d2a;
-  --green-glow: #15c96b;
-  --red: #e23636;
-  --red-glow: #ff4d4d;
-  --black-slot: #1a1a2e;
-  --gold: #d4a843;
-  --gold-glow: #f0c95e;
-  --text-primary: #e8eaf0;
-  --text-muted: #7a8298;
-  --text-dim: #4a5068;
-  --border: #252a36;
-  --accent-blue: #4a90d9;
-  --accent-purple: #8b5cf6;
-}
-
-* { margin: 0; padding: 0; box-sizing: border-box; }
-
-body {
-  background: var(--bg-deep);
-  color: var(--text-primary);
-  font-family: 'DM Sans', sans-serif;
-  min-height: 100vh;
-  overflow-x: hidden;
-}
-
-/* Noise overlay */
-body::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  background: url('data:image/svg+xml,<svg viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="4" stitchTiles="stitch"/></filter><rect width="256" height="256" filter="url(%23n)" opacity="0.03"/></svg>');
-  pointer-events: none;
-  z-index: 9999;
-}
-
-.app-header {
-  text-align: center;
-  padding: 40px 20px 20px;
-  position: relative;
-}
-
-.app-header h1 {
-  font-family: 'Playfair Display', serif;
-  font-weight: 900;
-  font-size: 2.8rem;
-  background: linear-gradient(135deg, var(--gold), var(--gold-glow), var(--gold));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  letter-spacing: -1px;
-}
-
-.app-header .subtitle {
-  color: var(--text-muted);
-  font-size: 0.95rem;
-  margin-top: 6px;
-  font-family: 'JetBrains Mono', monospace;
-  font-weight: 400;
-}
-
-/* Tabs */
-.tab-bar {
-  display: flex;
-  justify-content: center;
-  gap: 4px;
-  padding: 10px 20px;
-  margin-bottom: 20px;
-}
-
-.tab-btn {
-  background: transparent;
-  border: 1px solid var(--border);
-  color: var(--text-muted);
-  padding: 10px 24px;
-  border-radius: 8px;
-  cursor: pointer;
-  font-family: 'DM Sans', sans-serif;
-  font-size: 0.9rem;
-  font-weight: 600;
-  transition: all 0.25s;
-}
-
-.tab-btn:hover {
-  background: var(--bg-elevated);
-  color: var(--text-primary);
-}
-
-.tab-btn.active {
-  background: linear-gradient(135deg, var(--green-felt), var(--green-dark));
-  color: #fff;
-  border-color: var(--green-glow);
-  box-shadow: 0 0 20px rgba(21, 201, 107, 0.15);
-}
-
-.tab-panel { display: none; padding: 0 20px 40px; max-width: 1400px; margin: 0 auto; }
-.tab-panel.active { display: block; }
-
-/* ========== WHEEL TAB ========== */
-.wheel-layout {
-  display: grid;
-  grid-template-columns: 1fr 420px;
-  gap: 30px;
-  align-items: start;
-}
-
-@media (max-width: 900px) {
-  .wheel-layout { grid-template-columns: 1fr; }
-}
-
-.wheel-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 24px;
-}
-
-canvas#rouletteWheel {
-  max-width: 420px;
-  width: 100%;
-  filter: drop-shadow(0 0 40px rgba(21, 201, 107, 0.12));
-}
-
-.spin-btn {
-  background: linear-gradient(135deg, var(--gold), #c4942e);
-  color: #1a1000;
-  font-family: 'Playfair Display', serif;
-  font-weight: 700;
-  font-size: 1.3rem;
-  padding: 14px 52px;
-  border: none;
-  border-radius: 50px;
-  cursor: pointer;
-  letter-spacing: 1px;
-  transition: all 0.3s;
-  box-shadow: 0 4px 24px rgba(212, 168, 67, 0.3);
-}
-
-.spin-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 32px rgba(212, 168, 67, 0.45);
-}
-
-.spin-btn:active { transform: translateY(0); }
-
-.spin-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  transform: none;
-}
-
-.result-display {
-  text-align: center;
-  min-height: 80px;
-}
-
-.result-number {
-  font-family: 'Playfair Display', serif;
-  font-size: 3rem;
-  font-weight: 900;
-  transition: all 0.3s;
-}
-
-.result-number.red { color: var(--red); text-shadow: 0 0 30px rgba(226, 54, 54, 0.4); }
-.result-number.black { color: #ccc; }
-.result-number.green { color: var(--green-glow); text-shadow: 0 0 30px rgba(21, 201, 107, 0.4); }
-
-.result-info {
-  color: var(--text-muted);
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.82rem;
-  margin-top: 4px;
-}
-
-/* Sidebar panel */
-.sidebar-panel {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 24px;
-}
-
-.sidebar-panel h3 {
-  font-family: 'Playfair Display', serif;
-  font-size: 1.2rem;
-  color: var(--gold);
-  margin-bottom: 16px;
-}
-
-.stats-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  margin-bottom: 20px;
-}
-
-.stat-box {
-  background: var(--bg-elevated);
-  border-radius: 10px;
-  padding: 14px;
-  text-align: center;
-}
-
-.stat-box .label {
-  font-size: 0.72rem;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  font-family: 'JetBrains Mono', monospace;
-}
-
-.stat-box .value {
-  font-size: 1.5rem;
-  font-weight: 700;
-  margin-top: 4px;
-}
-
-.history-strip {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 5px;
-  margin-top: 12px;
-}
-
-.history-chip {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.7rem;
-  font-weight: 700;
-  font-family: 'JetBrains Mono', monospace;
-  animation: chipIn 0.3s ease-out;
-}
-
-@keyframes chipIn {
-  from { transform: scale(0); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
-}
-
-.history-chip.red { background: var(--red); color: white; }
-.history-chip.black { background: var(--black-slot); color: #aaa; border: 1px solid #333; }
-.history-chip.green { background: var(--green-felt); color: white; }
-
-.freq-bar-container { margin-top: 16px; }
-
-.freq-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 6px;
-  font-size: 0.78rem;
-  font-family: 'JetBrains Mono', monospace;
-}
-
-.freq-label { width: 50px; color: var(--text-muted); text-align: right; }
-
-.freq-bar-bg {
-  flex: 1;
-  height: 18px;
-  background: var(--bg-deep);
-  border-radius: 4px;
-  overflow: hidden;
-}
-
-.freq-bar-fill {
-  height: 100%;
-  border-radius: 4px;
-  transition: width 0.5s ease;
-}
-
-.freq-pct { width: 46px; color: var(--text-muted); font-size: 0.75rem; }
-
-/* ========== LEARN TAB ========== */
-.learn-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
-  gap: 24px;
-}
-
-.learn-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 28px;
-  transition: border-color 0.3s;
-}
-
-.learn-card:hover { border-color: var(--green-glow); }
-
-.learn-card h3 {
-  font-family: 'Playfair Display', serif;
-  font-size: 1.2rem;
-  color: var(--gold);
-  margin-bottom: 14px;
-}
-
-.learn-card p, .learn-card li {
-  color: var(--text-muted);
-  line-height: 1.7;
-  font-size: 0.92rem;
-}
-
-.learn-card ul { padding-left: 18px; margin-top: 8px; }
-.learn-card li { margin-bottom: 6px; }
-
-.formula {
-  background: var(--bg-elevated);
-  border-left: 3px solid var(--gold);
-  padding: 16px 20px;
-  border-radius: 0 8px 8px 0;
-  margin: 14px 0;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.88rem;
-  color: var(--green-glow);
-  overflow-x: auto;
-}
-
-.bet-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 12px;
-  font-size: 0.85rem;
-}
-
-.bet-table th {
-  text-align: left;
-  padding: 10px 12px;
-  background: var(--bg-elevated);
-  color: var(--gold);
-  font-weight: 600;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.78rem;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.bet-table td {
-  padding: 10px 12px;
-  border-bottom: 1px solid var(--border);
-  color: var(--text-muted);
-}
-
-.bet-table tr:last-child td { border-bottom: none; }
-
-.highlight-red { color: var(--red) !important; }
-.highlight-green { color: var(--green-glow) !important; }
-.highlight-gold { color: var(--gold) !important; }
-
-/* ========== PYTHON TAB ========== */
-.python-section {
-  margin-bottom: 32px;
-}
-
-.python-section h3 {
-  font-family: 'Playfair Display', serif;
-  font-size: 1.3rem;
-  color: var(--gold);
-  margin-bottom: 8px;
-}
-
-.python-section .desc {
-  color: var(--text-muted);
-  margin-bottom: 16px;
-  line-height: 1.6;
-  font-size: 0.92rem;
-}
-
-.code-block {
-  background: #0d1117;
-  border: 1px solid #21262d;
-  border-radius: 10px;
-  overflow: hidden;
-  margin-bottom: 20px;
-}
-
-.code-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10px 16px;
-  background: #161b22;
-  border-bottom: 1px solid #21262d;
-}
-
-.code-header span {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.78rem;
-  color: var(--text-muted);
-}
-
-.copy-btn {
-  background: var(--bg-elevated);
-  border: 1px solid var(--border);
-  color: var(--text-muted);
-  padding: 4px 12px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 0.75rem;
-  font-family: 'JetBrains Mono', monospace;
-  transition: all 0.2s;
-}
-
-.copy-btn:hover { color: var(--gold); border-color: var(--gold); }
-
-pre.code-content {
-  padding: 20px;
-  overflow-x: auto;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.82rem;
-  line-height: 1.65;
-  color: #c9d1d9;
-  tab-size: 4;
-}
-
-.code-content .kw { color: #ff7b72; }
-.code-content .fn { color: #d2a8ff; }
-.code-content .str { color: #a5d6ff; }
-.code-content .num { color: #79c0ff; }
-.code-content .cmt { color: #8b949e; font-style: italic; }
-.code-content .op { color: #ff7b72; }
-.code-content .cls { color: #f0c95e; }
-.code-content .dec { color: #79c0ff; }
-.code-content .built { color: #ffa657; }
-
-/* ========== SIMULATOR TAB ========== */
-.sim-layout {
-  display: grid;
-  grid-template-columns: 320px 1fr;
-  gap: 24px;
-}
-
-@media (max-width: 900px) { .sim-layout { grid-template-columns: 1fr; } }
-
-.sim-controls {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 24px;
-  align-self: start;
-}
-
-.sim-controls h3 {
-  font-family: 'Playfair Display', serif;
-  color: var(--gold);
-  margin-bottom: 16px;
-}
-
-.form-group { margin-bottom: 18px; }
-
-.form-group label {
-  display: block;
-  font-size: 0.8rem;
-  color: var(--text-muted);
-  font-family: 'JetBrains Mono', monospace;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-bottom: 6px;
-}
-
-.form-group select,
-.form-group input {
-  width: 100%;
-  padding: 10px 14px;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  color: var(--text-primary);
-  font-family: 'DM Sans', sans-serif;
-  font-size: 0.9rem;
-  outline: none;
-  transition: border-color 0.2s;
-}
-
-.form-group select:focus,
-.form-group input:focus { border-color: var(--green-glow); }
-
-.form-group select option { background: var(--bg-card); }
-
-.run-sim-btn {
-  width: 100%;
-  padding: 13px;
-  background: linear-gradient(135deg, var(--green-felt), var(--green-dark));
-  border: 1px solid var(--green-glow);
-  color: white;
-  font-family: 'DM Sans', sans-serif;
-  font-weight: 700;
-  font-size: 1rem;
-  border-radius: 10px;
-  cursor: pointer;
-  transition: all 0.3s;
-  box-shadow: 0 0 20px rgba(21, 201, 107, 0.12);
-}
-
-.run-sim-btn:hover {
-  box-shadow: 0 0 30px rgba(21, 201, 107, 0.25);
-  transform: translateY(-1px);
-}
-
-.sim-results {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 24px;
-}
-
-.sim-results h3 {
-  font-family: 'Playfair Display', serif;
-  color: var(--gold);
-  margin-bottom: 20px;
-}
-
-.sim-stats-row {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-  gap: 12px;
-  margin-bottom: 24px;
-}
-
-canvas#simChart {
-  width: 100% !important;
-  height: 300px !important;
-  margin-top: 10px;
-}
-
-.sim-insight {
-  background: var(--bg-elevated);
-  border-left: 3px solid var(--accent-purple);
-  padding: 14px 18px;
-  border-radius: 0 8px 8px 0;
-  margin-top: 20px;
-  font-size: 0.88rem;
-  color: var(--text-muted);
-  line-height: 1.6;
-}
-
-.sim-insight strong { color: var(--accent-purple); }
-
-/* Chart canvas container */
-.chart-container {
-  position: relative;
-  width: 100%;
-  height: 300px;
-}
+:root{--bg-deep:#0b0d12;--bg-card:#12151e;--bg-elevated:#1a1e2a;--bg-hover:#222738;--green-felt:#0d6b3a;--green-dark:#094d2a;--green-glow:#15c96b;--red:#e23636;--black-slot:#1a1a2e;--gold:#d4a843;--gold-glow:#f0c95e;--text-primary:#e8eaf0;--text-secondary:#b0b8cc;--text-muted:#7a8298;--text-dim:#4a5068;--border:#252a36;--border-light:#2e3448;--accent-blue:#4a90d9;--accent-purple:#8b5cf6;--accent-teal:#14b8a6;--radius:12px;--radius-sm:8px}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg-deep);color:var(--text-primary);font-family:'Outfit',sans-serif;min-height:100vh;overflow-x:hidden;line-height:1.6}
+body::before{content:'';position:fixed;inset:0;background:url('data:image/svg+xml,<svg viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="4" stitchTiles="stitch"/></filter><rect width="256" height="256" filter="url(%23n)" opacity="0.025"/></svg>');pointer-events:none;z-index:9999}
+.app-header{text-align:center;padding:32px 20px 16px}
+.app-header h1{font-family:'Fraunces',serif;font-weight:900;font-size:2.5rem;background:linear-gradient(135deg,var(--gold),var(--gold-glow),#fff5d4,var(--gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:-1px}
+.app-header .subtitle{color:var(--text-muted);font-size:.9rem;margin-top:4px;font-family:'JetBrains Mono',monospace}
+.scenario-bar{display:flex;justify-content:center;gap:6px;padding:8px 20px 6px;flex-wrap:wrap}
+.scenario-btn{background:var(--bg-card);border:1px solid var(--border);color:var(--text-muted);padding:10px 20px;border-radius:50px;cursor:pointer;font-family:'Outfit',sans-serif;font-size:.88rem;font-weight:600;transition:all .25s;display:flex;align-items:center;gap:7px}
+.scenario-btn:hover{background:var(--bg-elevated);color:var(--text-primary)}
+.scenario-btn.active{background:linear-gradient(135deg,var(--green-felt),var(--green-dark));color:#fff;border-color:var(--green-glow);box-shadow:0 0 20px rgba(21,201,107,.15)}
+.tab-bar{display:flex;justify-content:center;gap:3px;padding:10px 20px 18px}
+.tab-btn{background:transparent;border:1px solid transparent;color:var(--text-dim);padding:8px 20px;border-radius:var(--radius-sm);cursor:pointer;font-family:'Outfit',sans-serif;font-size:.85rem;font-weight:600;transition:all .2s}
+.tab-btn:hover{color:var(--text-muted);background:var(--bg-card)}
+.tab-btn.active{color:var(--gold);border-color:var(--border);background:var(--bg-card)}
+.main-container{max-width:1360px;margin:0 auto;padding:0 20px 60px}
+.tab-panel{display:none}.tab-panel.active{display:block}
+.scenario-panel{display:none}
+.card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:24px;transition:border-color .3s}
+.card:hover{border-color:var(--border-light)}
+.card h3{font-family:'Fraunces',serif;font-size:1.15rem;color:var(--gold);margin-bottom:12px}
+.card p,.card li{color:var(--text-secondary);line-height:1.75;font-size:.9rem}
+.card ul{padding-left:18px;margin-top:8px}.card li{margin-bottom:4px}
+.interact-layout{display:grid;grid-template-columns:1fr 380px;gap:24px;align-items:start}
+@media(max-width:900px){.interact-layout,.sim-layout{grid-template-columns:1fr!important}}
+.visual-area{display:flex;flex-direction:column;align-items:center;gap:20px}
+.action-btn{background:linear-gradient(135deg,var(--gold),#c4942e);color:#1a1000;font-family:'Fraunces',serif;font-weight:700;font-size:1.2rem;padding:12px 44px;border:none;border-radius:50px;cursor:pointer;transition:all .3s;box-shadow:0 4px 24px rgba(212,168,67,.3)}
+.action-btn:hover{transform:translateY(-2px);box-shadow:0 6px 32px rgba(212,168,67,.45)}
+.action-btn:active{transform:translateY(0)}.action-btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.result-display{text-align:center;min-height:70px}
+.result-big{font-family:'Fraunces',serif;font-size:2.8rem;font-weight:900;transition:all .3s}
+.result-sub{color:var(--text-muted);font-family:'JetBrains Mono',monospace;font-size:.8rem;margin-top:2px}
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+.stat-box{background:var(--bg-elevated);border-radius:var(--radius-sm);padding:12px;text-align:center}
+.stat-box .label{font-size:.68rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;font-family:'JetBrains Mono',monospace}
+.stat-box .value{font-size:1.35rem;font-weight:700;margin-top:3px}
+.freq-row{display:flex;align-items:center;gap:8px;margin-bottom:5px;font-size:.76rem;font-family:'JetBrains Mono',monospace}
+.freq-label{min-width:55px;color:var(--text-muted);text-align:right}
+.freq-bar-bg{flex:1;height:16px;background:var(--bg-deep);border-radius:4px;overflow:hidden}
+.freq-bar-fill{height:100%;border-radius:4px;transition:width .4s ease}
+.freq-pct{min-width:42px;color:var(--text-muted);font-size:.72rem}
+.freq-expected{font-size:.68rem;color:var(--text-dim);text-align:right;margin-top:4px;font-family:'JetBrains Mono',monospace}
+.history-strip{display:flex;flex-wrap:wrap;gap:4px;margin-top:10px}
+.history-chip{min-width:28px;height:28px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:.68rem;font-weight:700;font-family:'JetBrains Mono',monospace;padding:0 6px;animation:chipPop .25s ease-out}
+@keyframes chipPop{from{transform:scale(0)}to{transform:scale(1)}}
+.learn-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:20px}
+.formula-box{background:var(--bg-elevated);border-left:3px solid var(--gold);padding:14px 18px;border-radius:0 var(--radius-sm) var(--radius-sm) 0;margin:12px 0;font-family:'JetBrains Mono',monospace;font-size:.84rem;color:var(--green-glow);overflow-x:auto;line-height:1.7;white-space:pre-wrap}
+.think-prompt{background:linear-gradient(135deg,rgba(139,92,246,.08),rgba(236,72,153,.05));border:1px solid rgba(139,92,246,.2);border-radius:var(--radius);padding:16px 20px;margin:16px 0}
+.think-prompt .think-label{font-family:'JetBrains Mono',monospace;font-size:.72rem;color:var(--accent-purple);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
+.think-prompt p{color:var(--text-secondary);font-size:.88rem;font-style:italic}
+.bet-table{width:100%;border-collapse:collapse;margin-top:10px;font-size:.82rem}
+.bet-table th{text-align:left;padding:8px 10px;background:var(--bg-elevated);color:var(--gold);font-weight:600;font-family:'JetBrains Mono',monospace;font-size:.72rem;text-transform:uppercase;letter-spacing:.5px}
+.bet-table td{padding:8px 10px;border-bottom:1px solid var(--border);color:var(--text-secondary)}
+.bet-table tr:last-child td{border-bottom:none}
+.hl-red{color:var(--red)!important}.hl-green{color:var(--green-glow)!important}.hl-gold{color:var(--gold)!important}.hl-blue{color:var(--accent-blue)!important}.hl-purple{color:var(--accent-purple)!important}
+.code-block{background:#0d1117;border:1px solid #21262d;border-radius:var(--radius);overflow:hidden;margin:14px 0}
+.code-header{display:flex;justify-content:space-between;align-items:center;padding:8px 14px;background:#161b22;border-bottom:1px solid #21262d}
+.code-header span{font-family:'JetBrains Mono',monospace;font-size:.75rem;color:var(--text-muted)}
+.copy-btn{background:var(--bg-elevated);border:1px solid var(--border);color:var(--text-muted);padding:3px 10px;border-radius:6px;cursor:pointer;font-size:.72rem;font-family:'JetBrains Mono',monospace;transition:all .2s}
+.copy-btn:hover{color:var(--gold);border-color:var(--gold)}
+pre.code-content{padding:16px;overflow-x:auto;font-family:'JetBrains Mono',monospace;font-size:.78rem;line-height:1.65;color:#c9d1d9;white-space:pre}
+.kw{color:#ff7b72}.fn{color:#d2a8ff}.str{color:#a5d6ff}.num{color:#79c0ff}.cmt{color:#8b949e;font-style:italic}.built{color:#ffa657}
+.sim-layout{display:grid;grid-template-columns:300px 1fr;gap:24px}
+.form-group{margin-bottom:16px}
+.form-group label{display:block;font-size:.75rem;color:var(--text-muted);font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px}
+.form-group select,.form-group input{width:100%;padding:9px 12px;background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text-primary);font-family:'Outfit',sans-serif;font-size:.88rem;outline:none;transition:border-color .2s}
+.form-group select:focus,.form-group input:focus{border-color:var(--green-glow)}
+.form-group select option{background:var(--bg-card)}
+.run-sim-btn{width:100%;padding:12px;background:linear-gradient(135deg,var(--green-felt),var(--green-dark));border:1px solid var(--green-glow);color:white;font-family:'Outfit',sans-serif;font-weight:700;font-size:.95rem;border-radius:var(--radius);cursor:pointer;transition:all .3s;box-shadow:0 0 16px rgba(21,201,107,.1)}
+.run-sim-btn:hover{box-shadow:0 0 28px rgba(21,201,107,.2);transform:translateY(-1px)}
+.sim-stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px;margin-bottom:20px}
+.chart-container{position:relative;width:100%;height:280px}
+.sim-insight{background:var(--bg-elevated);border-left:3px solid var(--accent-purple);padding:12px 16px;border-radius:0 var(--radius-sm) var(--radius-sm) 0;margin-top:16px;font-size:.85rem;color:var(--text-secondary);line-height:1.65}
+.sim-insight strong{color:var(--accent-purple)}
+canvas.interactive-canvas{max-width:420px;width:100%;filter:drop-shadow(0 0 30px rgba(21,201,107,.08))}
+.dice-container{display:flex;gap:20px;justify-content:center;align-items:center;flex-wrap:wrap}
+.die-face{width:100px;height:100px;background:linear-gradient(145deg,#f5f5f0,#e8e5dd);border-radius:16px;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);padding:14px;box-shadow:4px 4px 12px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.5);transition:transform .4s}
+.die-face.rolling{animation:dieRoll .12s ease-in-out infinite alternate}
+@keyframes dieRoll{0%{transform:rotate(-8deg) scale(1.05)}100%{transform:rotate(8deg) scale(.95)}}
+.dot{width:14px;height:14px;background:#2a2a3a;border-radius:50%;align-self:center;justify-self:center;display:none;box-shadow:inset 0 2px 3px rgba(0,0,0,.3)}
+.coin-visual{width:130px;height:130px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Fraunces',serif;font-weight:900;font-size:1.3rem;box-shadow:4px 4px 16px rgba(0,0,0,.4),inset 0 2px 0 rgba(255,255,255,.2);transition:transform .3s;border:3px solid}
+.coin-heads{background:linear-gradient(145deg,#d4a843,#b8922e);color:#3a2800;border-color:#c49a30}
+.coin-tails{background:linear-gradient(145deg,#a0a0a8,#7a7a82);color:#2a2a30;border-color:#8a8a92}
+.coin-visual.flipping{animation:coinFlip .1s ease-in-out infinite alternate}
+@keyframes coinFlip{0%{transform:rotateX(0) scale(1.05)}100%{transform:rotateX(180deg) scale(.95)}}
+.card-display{width:120px;height:170px;border-radius:12px;background:white;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:'Fraunces',serif;font-size:2.2rem;font-weight:900;box-shadow:4px 4px 16px rgba(0,0,0,.4);border:2px solid #ddd;position:relative}
+.card-display .suit{font-size:2.8rem;line-height:1}.card-display .rank{line-height:1}
+.card-display.red-card{color:#c62828}.card-display.black-card{color:#1a1a2e}
+.card-display.face-down{background:linear-gradient(135deg,#1a3a6e,#0d2348);border-color:#2a5090;color:transparent}
+.card-display.face-down::after{content:'\1F0A0';font-size:4rem;position:absolute;opacity:.3}
+.marble-bag{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;max-width:300px}
+.marble{width:36px;height:36px;border-radius:50%;box-shadow:inset -4px -4px 8px rgba(0,0,0,.3),inset 4px 4px 8px rgba(255,255,255,.2),2px 2px 6px rgba(0,0,0,.3);transition:transform .2s,opacity .3s}
+.marble.drawn{transform:scale(1.3);box-shadow:0 0 16px rgba(255,255,255,.3),inset -4px -4px 8px rgba(0,0,0,.3)}
+.python-sections{max-width:900px}
+.python-section{margin-bottom:28px}
+.python-section h3{font-family:'Fraunces',serif;font-size:1.15rem;color:var(--gold);margin-bottom:6px}
+.python-section .desc{color:var(--text-secondary);margin-bottom:12px;line-height:1.6;font-size:.88rem}
+.mb-md{margin-bottom:16px}
 </style>
 </head>
 <body>
+<div class="app-header"><h1>Probability Lab</h1><div class="subtitle">Interactive Math & Python for Real-World Randomness</div></div>
 
-<div class="app-header">
-  <h1>US Roulette Probability Lab</h1>
-  <div class="subtitle">Learn probability, statistics & Python through the wheel</div>
+<div class="scenario-bar" id="scenarioBar">
+<button class="scenario-btn active" data-scenario="roulette"><span class="emoji">&#127905;</span> Roulette</button>
+<button class="scenario-btn" data-scenario="dice"><span class="emoji">&#127922;</span> Dice</button>
+<button class="scenario-btn" data-scenario="coins"><span class="emoji">&#129689;</span> Coin Flip</button>
+<button class="scenario-btn" data-scenario="cards"><span class="emoji">&#127183;</span> Playing Cards</button>
+<button class="scenario-btn" data-scenario="marbles"><span class="emoji">&#128302;</span> Marble Bag</button>
 </div>
 
-<div class="tab-bar">
-  <button class="tab-btn active" onclick="switchTab('wheel')">🎡 Spin & Observe</button>
-  <button class="tab-btn" onclick="switchTab('learn')">📐 Probability Math</button>
-  <button class="tab-btn" onclick="switchTab('python')">🐍 Python Code</button>
-  <button class="tab-btn" onclick="switchTab('simulator')">📊 Monte Carlo Sim</button>
+<div class="tab-bar" id="tabBar">
+<button class="tab-btn active" data-tab="interact">Try It</button>
+<button class="tab-btn" data-tab="learn">Learn</button>
+<button class="tab-btn" data-tab="python">Python</button>
+<button class="tab-btn" data-tab="simulator">Simulator</button>
 </div>
 
-<!-- ==================== WHEEL TAB ==================== -->
-<div id="tab-wheel" class="tab-panel active">
-  <div class="wheel-layout">
-    <div class="wheel-container">
-      <canvas id="rouletteWheel" width="420" height="420"></canvas>
-      <button class="spin-btn" id="spinBtn" onclick="spinWheel()">SPIN</button>
-      <div class="result-display">
-        <div class="result-number" id="resultNumber">—</div>
-        <div class="result-info" id="resultInfo">Click SPIN to begin</div>
-      </div>
-    </div>
+<div class="main-container">
 
-    <div>
-      <div class="sidebar-panel" style="margin-bottom: 20px;">
-        <h3>Session Statistics</h3>
-        <div class="stats-grid">
-          <div class="stat-box">
-            <div class="label">Total Spins</div>
-            <div class="value" id="totalSpins">0</div>
-          </div>
-          <div class="stat-box">
-            <div class="label">Red %</div>
-            <div class="value highlight-red" id="redPct">0%</div>
-          </div>
-          <div class="stat-box">
-            <div class="label">Black %</div>
-            <div class="value" id="blackPct">0%</div>
-          </div>
-          <div class="stat-box">
-            <div class="label">Green %</div>
-            <div class="value highlight-green" id="greenPct">0%</div>
-          </div>
-        </div>
-
-        <div class="freq-bar-container">
-          <div class="freq-row">
-            <span class="freq-label" style="color:var(--red)">Red</span>
-            <div class="freq-bar-bg"><div class="freq-bar-fill" id="redBar" style="width:0%; background: var(--red);"></div></div>
-            <span class="freq-pct" id="redBarPct">0%</span>
-          </div>
-          <div class="freq-row">
-            <span class="freq-label">Black</span>
-            <div class="freq-bar-bg"><div class="freq-bar-fill" id="blackBar" style="width:0%; background: #555;"></div></div>
-            <span class="freq-pct" id="blackBarPct">0%</span>
-          </div>
-          <div class="freq-row">
-            <span class="freq-label" style="color:var(--green-glow)">Green</span>
-            <div class="freq-bar-bg"><div class="freq-bar-fill" id="greenBar" style="width:0%; background: var(--green-felt);"></div></div>
-            <span class="freq-pct" id="greenBarPct">0%</span>
-          </div>
-          <div class="freq-row" style="margin-top:10px;">
-            <span class="freq-label" style="color:var(--gold); font-size:0.7rem;">Expected</span>
-            <div class="freq-bar-bg" style="position:relative;">
-              <div style="position:absolute; left:47.37%; top:0; bottom:0; width:2px; background:var(--red); opacity:0.6;"></div>
-              <div style="position:absolute; left:47.37%; top:-2px; font-size:0.6rem; color:var(--text-dim);">47.4%</div>
-            </div>
-            <span class="freq-pct" style="font-size:0.7rem; color:var(--text-dim);">theoretical</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="sidebar-panel">
-        <h3>Spin History</h3>
-        <div class="history-strip" id="historyStrip">
-          <span style="color: var(--text-dim); font-size: 0.82rem;">No spins yet</span>
-        </div>
-      </div>
-    </div>
-  </div>
+<div id="scenario-roulette" class="scenario-panel" style="display:block">
+<div class="tab-panel active" data-tab="interact">
+<div class="interact-layout">
+<div class="visual-area">
+<canvas id="rouletteWheel" class="interactive-canvas" width="420" height="420"></canvas>
+<button class="action-btn" id="spinBtn" onclick="Roulette.spin()">SPIN</button>
+<div class="result-display"><div class="result-big" id="rl-resultNum" style="color:var(--text-dim)">&mdash;</div><div class="result-sub" id="rl-resultInfo">Click SPIN to begin</div></div>
 </div>
-
-<!-- ==================== LEARN TAB ==================== -->
-<div id="tab-learn" class="tab-panel">
-  <div class="learn-grid">
-
-    <div class="learn-card">
-      <h3>The US Roulette Wheel</h3>
-      <p>A US (American) roulette wheel has <strong class="highlight-gold">38 pockets</strong>:</p>
-      <ul>
-        <li><span class="highlight-red">18 red</span> numbers</li>
-        <li><strong>18 black</strong> numbers</li>
-        <li><span class="highlight-green">2 green</span> pockets: <strong>0</strong> and <strong>00</strong></li>
-      </ul>
-      <p style="margin-top:12px;">The two green pockets give the house its edge. European roulette has only one green pocket (0), making it statistically more favorable for the player.</p>
-    </div>
-
-    <div class="learn-card">
-      <h3>Basic Probability Formula</h3>
-      <p>The probability of any event is:</p>
-      <div class="formula">P(event) = favorable outcomes / total outcomes</div>
-      <p>For a single number in US roulette:</p>
-      <div class="formula">P(single number) = 1/38 ≈ 0.02632 ≈ 2.63%</div>
-      <p>For red/black:</p>
-      <div class="formula">P(red) = 18/38 ≈ 0.4737 ≈ 47.37%</div>
-      <p>Notice it's <em>not</em> 50% — the two green pockets shift the odds toward the house.</p>
-    </div>
-
-    <div class="learn-card">
-      <h3>House Edge Explained</h3>
-      <p>The <strong class="highlight-gold">house edge</strong> is the statistical advantage built into every bet:</p>
-      <div class="formula">House Edge = (2/38) × 100% = 5.26%</div>
-      <p>This means for every $100 wagered on average, the casino expects to keep <strong class="highlight-red">$5.26</strong> over the long run. This is true for <em>every</em> bet on the table (except the top-line bet, which is worse at 7.89%).</p>
-    </div>
-
-    <div class="learn-card">
-      <h3>Expected Value (EV)</h3>
-      <p><strong class="highlight-gold">Expected Value</strong> tells you the average outcome per bet over many trials.</p>
-      <div class="formula">EV = Σ (outcome × probability)</div>
-      <p>For a $1 bet on a single number (pays 35:1):</p>
-      <div class="formula">EV = (35 × 1/38) + (-1 × 37/38)
-EV = 0.9211 - 0.9737
-EV = <span class="highlight-red">-$0.0526</span></div>
-      <p>You lose ~5.3 cents per dollar bet on average. This holds for every standard bet type.</p>
-    </div>
-
-    <div class="learn-card">
-      <h3>The Law of Large Numbers</h3>
-      <p>As the number of trials increases, the observed frequency of an event converges to its theoretical probability.</p>
-      <div class="formula">lim(n→∞) observed_freq/n = P(event)</div>
-      <p>After 10 spins, red might appear 70% of the time. After 10,000 spins, it will be very close to 47.37%. This is why the <strong class="highlight-red">Gambler's Fallacy</strong> is wrong — each spin is independent!</p>
-      <p style="margin-top:8px;">Try this yourself in the <strong>Monte Carlo Sim</strong> tab →</p>
-    </div>
-
-    <div class="learn-card">
-      <h3>Common Bet Types & Odds</h3>
-      <table class="bet-table">
-        <thead>
-          <tr><th>Bet Type</th><th>Payout</th><th>Prob.</th><th>House Edge</th></tr>
-        </thead>
-        <tbody>
-          <tr><td>Straight (1 number)</td><td>35:1</td><td>2.63%</td><td>5.26%</td></tr>
-          <tr><td>Split (2 numbers)</td><td>17:1</td><td>5.26%</td><td>5.26%</td></tr>
-          <tr><td>Street (3 numbers)</td><td>11:1</td><td>7.89%</td><td>5.26%</td></tr>
-          <tr><td>Corner (4 numbers)</td><td>8:1</td><td>10.53%</td><td>5.26%</td></tr>
-          <tr><td>Six Line (6 numbers)</td><td>5:1</td><td>15.79%</td><td>5.26%</td></tr>
-          <tr><td>Dozen / Column</td><td>2:1</td><td>31.58%</td><td>5.26%</td></tr>
-          <tr><td>Red / Black / Odd / Even</td><td>1:1</td><td>47.37%</td><td>5.26%</td></tr>
-          <tr><td class="highlight-red">Top Line (0,00,1,2,3)</td><td class="highlight-red">6:1</td><td class="highlight-red">13.16%</td><td class="highlight-red">7.89%</td></tr>
-        </tbody>
-      </table>
-    </div>
-
-    <div class="learn-card">
-      <h3>Variance & Standard Deviation</h3>
-      <p>While EV tells you the average, <strong class="highlight-gold">variance</strong> measures the spread of outcomes.</p>
-      <div class="formula">Variance = E[X²] - (E[X])²
-Std Dev = √Variance</div>
-      <p>For a $1 red/black bet over <em>n</em> spins:</p>
-      <div class="formula">σ = √(n × p × (1 - p))
-σ = √(n × 0.4737 × 0.5263)</div>
-      <p>High variance means wild short-term swings even when the long-term average is known. This is why people win sometimes — and why they always lose in the long run.</p>
-    </div>
-
-    <div class="learn-card">
-      <h3>The Gambler's Ruin</h3>
-      <p>Even with a small house edge, a player with finite money playing against a casino with (effectively) infinite money will <strong class="highlight-red">always go broke</strong> eventually.</p>
-      <div class="formula">P(ruin) → 1 as time → ∞ (when house has edge)</div>
-      <p>The probability of ruin increases with the number of bets placed and the size of the house edge. This is the mathematical certainty behind why casinos are profitable businesses.</p>
-    </div>
-  </div>
+<div>
+<div class="card mb-md"><h3>Session Stats</h3>
+<div class="stats-grid">
+<div class="stat-box"><div class="label">Spins</div><div class="value" id="rl-total">0</div></div>
+<div class="stat-box"><div class="label">Red %</div><div class="value hl-red" id="rl-redPct">0%</div></div>
+<div class="stat-box"><div class="label">Black %</div><div class="value" id="rl-blackPct">0%</div></div>
+<div class="stat-box"><div class="label">Green %</div><div class="value hl-green" id="rl-greenPct">0%</div></div>
 </div>
+<div id="rl-freqBars">
+<div class="freq-row"><span class="freq-label" style="color:var(--red)">Red</span><div class="freq-bar-bg"><div class="freq-bar-fill" id="rl-redBar" style="width:0%;background:var(--red)"></div></div><span class="freq-pct" id="rl-redBarPct">0%</span></div>
+<div class="freq-row"><span class="freq-label">Black</span><div class="freq-bar-bg"><div class="freq-bar-fill" id="rl-blackBar" style="width:0%;background:#555"></div></div><span class="freq-pct" id="rl-blackBarPct">0%</span></div>
+<div class="freq-row"><span class="freq-label" style="color:var(--green-glow)">Green</span><div class="freq-bar-bg"><div class="freq-bar-fill" id="rl-greenBar" style="width:0%;background:var(--green-felt)"></div></div><span class="freq-pct" id="rl-greenBarPct">0%</span></div>
+</div>
+<div class="freq-expected">Expected: Red 47.4% &middot; Black 47.4% &middot; Green 5.3%</div>
+</div>
+<div class="card"><h3>History</h3><div class="history-strip" id="rl-history"><span style="color:var(--text-dim);font-size:0.8rem">No spins yet</span></div></div>
+</div></div></div>
 
-<!-- ==================== PYTHON TAB ==================== -->
-<div id="tab-python" class="tab-panel">
+<div class="tab-panel" data-tab="learn"><div class="learn-grid">
+<div class="card"><h3>What Is US Roulette?</h3><p>American roulette has <strong class="hl-gold">38 pockets</strong>: <span class="hl-red">18 red</span>, <strong>18 black</strong>, and <span class="hl-green">2 green</span> (0 and 00). Each spin is equally likely to land on any pocket.</p>
+<div class="think-prompt"><div class="think-label">&#129300; Think About It</div><p>European roulette has only one green pocket. How would that change the odds?</p></div></div>
+<div class="card"><h3>The Probability Formula</h3><p>The chance of any event:</p><div class="formula-box">P(event) = favorable outcomes &divide; total outcomes
 
-  <div class="python-section">
-    <h3>1. Basic Roulette Simulation</h3>
-    <p class="desc">Start with the fundamentals — modeling a roulette wheel in Python using <code>random</code>. This teaches random number generation, lists, and conditional logic.</p>
-    <div class="code-block">
-      <div class="code-header">
-        <span>roulette_basics.py</span>
-        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
-      </div>
-      <pre class="code-content"><span class="kw">import</span> random
+P(red) = 18 &divide; 38 &asymp; 47.37%
+P(single number) = 1 &divide; 38 &asymp; 2.63%</div><p>Red isn't 50% &mdash; those two green pockets shift the odds.</p></div>
+<div class="card"><h3>House Edge</h3><div class="formula-box">House Edge = 2 &divide; 38 = 5.26%</div><p>For every $100 bet, the casino expects to keep about <strong class="hl-red">$5.26</strong> over time.</p></div>
+<div class="card"><h3>Expected Value (EV)</h3><div class="formula-box">EV = (win &times; P(win)) + (loss &times; P(lose))
 
-<span class="cmt"># US Roulette: 0, 00, 1-36</span>
-<span class="cmt"># We represent 00 as the string "00" and everything else as ints</span>
+$1 on a single number (pays 35:1):
+EV = ($35 &times; 1/38) + (-$1 &times; 37/38) = <span class="hl-red">-$0.053</span></div><p>Every standard roulette bet has the same negative EV.</p></div>
+<div class="card"><h3>Gambler's Fallacy</h3><p>If red hits 5 times in a row, is black "due"? <strong class="hl-red">No!</strong> Each spin is <strong>independent</strong>. The wheel has no memory. P(red) is always 18/38.</p></div>
+<div class="card"><h3>Law of Large Numbers</h3><p>Over many spins, observed frequencies approach theoretical probability. After 10 spins, red might be 70%. After 100,000 spins, it'll be very close to 47.37%. Try it!</p></div>
+<div class="card"><h3>All Bet Types</h3><table class="bet-table"><thead><tr><th>Bet</th><th>Payout</th><th>Prob.</th><th>Edge</th></tr></thead><tbody>
+<tr><td>Single Number</td><td>35:1</td><td>2.63%</td><td>5.26%</td></tr>
+<tr><td>Split (2)</td><td>17:1</td><td>5.26%</td><td>5.26%</td></tr>
+<tr><td>Red/Black</td><td>1:1</td><td>47.37%</td><td>5.26%</td></tr>
+<tr><td>Dozen</td><td>2:1</td><td>31.58%</td><td>5.26%</td></tr>
+<tr class="hl-red"><td>Top Line</td><td>6:1</td><td>13.16%</td><td>7.89%</td></tr>
+</tbody></table></div>
+<div class="card"><h3>Variance</h3><div class="formula-box">Std Dev = &radic;(n &times; p &times; (1-p))</div><p>High variance means wild short-term swings even when the long-term average is known. That's why people win sometimes &mdash; and always lose long-term.</p></div>
+</div></div>
+
+<div class="tab-panel" data-tab="python"><div class="python-sections">
+<div class="python-section"><h3>1. Simulate the Wheel</h3><p class="desc">Model a US roulette wheel in Python.</p>
+<div class="code-block"><div class="code-header"><span>roulette_sim.py</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre class="code-content"><span class="kw">import</span> random
+
 pockets = [<span class="num">0</span>, <span class="str">"00"</span>] + <span class="built">list</span>(<span class="built">range</span>(<span class="num">1</span>, <span class="num">37</span>))
-
 red_numbers = {<span class="num">1</span>,<span class="num">3</span>,<span class="num">5</span>,<span class="num">7</span>,<span class="num">9</span>,<span class="num">12</span>,<span class="num">14</span>,<span class="num">16</span>,<span class="num">18</span>,<span class="num">19</span>,<span class="num">21</span>,<span class="num">23</span>,<span class="num">25</span>,<span class="num">27</span>,<span class="num">30</span>,<span class="num">32</span>,<span class="num">34</span>,<span class="num">36</span>}
-black_numbers = {<span class="num">2</span>,<span class="num">4</span>,<span class="num">6</span>,<span class="num">8</span>,<span class="num">10</span>,<span class="num">11</span>,<span class="num">13</span>,<span class="num">15</span>,<span class="num">17</span>,<span class="num">20</span>,<span class="num">22</span>,<span class="num">24</span>,<span class="num">26</span>,<span class="num">28</span>,<span class="num">29</span>,<span class="num">31</span>,<span class="num">33</span>,<span class="num">35</span>}
 
 <span class="kw">def</span> <span class="fn">spin</span>():
-    <span class="str">"""Simulate a single spin of the roulette wheel."""</span>
     <span class="kw">return</span> random.choice(pockets)
 
 <span class="kw">def</span> <span class="fn">get_color</span>(result):
-    <span class="str">"""Determine the color of a roulette result."""</span>
-    <span class="kw">if</span> result <span class="kw">in</span> (<span class="num">0</span>, <span class="str">"00"</span>):
-        <span class="kw">return</span> <span class="str">"green"</span>
-    <span class="kw">elif</span> result <span class="kw">in</span> red_numbers:
-        <span class="kw">return</span> <span class="str">"red"</span>
-    <span class="kw">else</span>:
-        <span class="kw">return</span> <span class="str">"black"</span>
+    <span class="kw">if</span> result <span class="kw">in</span> (<span class="num">0</span>, <span class="str">"00"</span>): <span class="kw">return</span> <span class="str">"green"</span>
+    <span class="kw">return</span> <span class="str">"red"</span> <span class="kw">if</span> result <span class="kw">in</span> red_numbers <span class="kw">else</span> <span class="str">"black"</span>
 
-<span class="cmt"># Run 10 spins</span>
-<span class="kw">for</span> i <span class="kw">in</span> <span class="built">range</span>(<span class="num">10</span>):
+<span class="cmt"># Spin 20 times</span>
+counts = {<span class="str">"red"</span>: <span class="num">0</span>, <span class="str">"black"</span>: <span class="num">0</span>, <span class="str">"green"</span>: <span class="num">0</span>}
+<span class="kw">for</span> i <span class="kw">in</span> <span class="built">range</span>(<span class="num">20</span>):
     result = spin()
     color = get_color(result)
-    <span class="built">print</span>(<span class="str">f"Spin </span>{i+1}<span class="str">: </span>{result}<span class="str"> (</span>{color}<span class="str">)"</span>)</pre>
-    </div>
-  </div>
-
-  <div class="python-section">
-    <h3>2. Calculating Probabilities</h3>
-    <p class="desc">Use Python to compute exact probabilities and compare them with simulated frequencies. This covers the <code>fractions</code> module and empirical vs theoretical probability.</p>
-    <div class="code-block">
-      <div class="code-header">
-        <span>probability_calc.py</span>
-        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
-      </div>
-      <pre class="code-content"><span class="kw">from</span> fractions <span class="kw">import</span> Fraction
-<span class="kw">import</span> random
-
-TOTAL_POCKETS = <span class="num">38</span>  <span class="cmt"># US Roulette</span>
-
-<span class="cmt"># Exact probabilities using Fraction for precision</span>
-bets = {
-    <span class="str">"Straight (1 number)"</span>: Fraction(<span class="num">1</span>, <span class="num">38</span>),
-    <span class="str">"Split (2 numbers)"</span>:   Fraction(<span class="num">2</span>, <span class="num">38</span>),
-    <span class="str">"Street (3 numbers)"</span>:  Fraction(<span class="num">3</span>, <span class="num">38</span>),
-    <span class="str">"Corner (4 numbers)"</span>:  Fraction(<span class="num">4</span>, <span class="num">38</span>),
-    <span class="str">"Six Line (6)"</span>:        Fraction(<span class="num">6</span>, <span class="num">38</span>),
-    <span class="str">"Dozen (12)"</span>:          Fraction(<span class="num">12</span>, <span class="num">38</span>),
-    <span class="str">"Red/Black (18)"</span>:      Fraction(<span class="num">18</span>, <span class="num">38</span>),
-}
-
-<span class="built">print</span>(<span class="str">"Bet Type                 Exact Fraction    Decimal    Pct"</span>)
-<span class="built">print</span>(<span class="str">"─"</span> * <span class="num">65</span>)
-<span class="kw">for</span> name, prob <span class="kw">in</span> bets.items():
-    <span class="built">print</span>(<span class="str">f"</span>{name:<span class="num">25</span>}<span class="str"> </span>{<span class="built">str</span>(prob):<span class="num">17</span>}<span class="str"> </span>{<span class="built">float</span>(prob):<span class="num">10.6</span>f}<span class="str"> </span>{<span class="built">float</span>(prob)*<span class="num">100</span>:<span class="num">6.2</span>f}<span class="str">%"</span>)
-
-<span class="cmt"># Empirical test: Simulate 100,000 spins for red/black</span>
-pockets = [<span class="num">0</span>, <span class="str">"00"</span>] + <span class="built">list</span>(<span class="built">range</span>(<span class="num">1</span>, <span class="num">37</span>))
-red = {<span class="num">1</span>,<span class="num">3</span>,<span class="num">5</span>,<span class="num">7</span>,<span class="num">9</span>,<span class="num">12</span>,<span class="num">14</span>,<span class="num">16</span>,<span class="num">18</span>,<span class="num">19</span>,<span class="num">21</span>,<span class="num">23</span>,<span class="num">25</span>,<span class="num">27</span>,<span class="num">30</span>,<span class="num">32</span>,<span class="num">34</span>,<span class="num">36</span>}
-
-N = <span class="num">100_000</span>
-red_count = <span class="built">sum</span>(<span class="num">1</span> <span class="kw">for</span> _ <span class="kw">in</span> <span class="built">range</span>(N) <span class="kw">if</span> random.choice(pockets) <span class="kw">in</span> red)
-
-<span class="built">print</span>(<span class="str">f"\nEmpirical red frequency ({N:,} spins): </span>{red_count/N:<span class="num">.4</span>f}<span class="str">"</span>)
-<span class="built">print</span>(<span class="str">f"Theoretical probability:               </span>{<span class="num">18</span>/<span class="num">38</span>:<span class="num">.4</span>f}<span class="str">"</span>)
-<span class="built">print</span>(<span class="str">f"Difference:                            </span>{<span class="built">abs</span>(red_count/N - <span class="num">18</span>/<span class="num">38</span>):<span class="num">.4</span>f}<span class="str">"</span>)</pre>
-    </div>
-  </div>
-
-  <div class="python-section">
-    <h3>3. Expected Value Calculator</h3>
-    <p class="desc">Build a function that calculates EV for any roulette bet. Demonstrates functions, dictionaries, and mathematical thinking.</p>
-    <div class="code-block">
-      <div class="code-header">
-        <span>expected_value.py</span>
-        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
-      </div>
-      <pre class="code-content"><span class="kw">def</span> <span class="fn">expected_value</span>(win_payout, win_prob, bet_amount=<span class="num">1</span>):
-    <span class="str">"""
-    Calculate the expected value of a roulette bet.
-    
-    Args:
-        win_payout: Amount won (not including original bet back)
-        win_prob: Probability of winning (0-1)
-        bet_amount: Amount wagered
-    
-    Returns:
-        Expected value per bet
-    """</span>
-    lose_prob = <span class="num">1</span> - win_prob
-    ev = (win_payout * win_prob) + (-bet_amount * lose_prob)
-    <span class="kw">return</span> ev
-
-<span class="cmt"># Calculate EV for all standard US roulette bets</span>
-bets = [
-    (<span class="str">"Straight Up"</span>,  <span class="num">35</span>, <span class="num">1</span>/<span class="num">38</span>),
-    (<span class="str">"Split"</span>,        <span class="num">17</span>, <span class="num">2</span>/<span class="num">38</span>),
-    (<span class="str">"Street"</span>,       <span class="num">11</span>, <span class="num">3</span>/<span class="num">38</span>),
-    (<span class="str">"Corner"</span>,        <span class="num">8</span>, <span class="num">4</span>/<span class="num">38</span>),
-    (<span class="str">"Six Line"</span>,      <span class="num">5</span>, <span class="num">6</span>/<span class="num">38</span>),
-    (<span class="str">"Dozen/Column"</span>,  <span class="num">2</span>, <span class="num">12</span>/<span class="num">38</span>),
-    (<span class="str">"Red/Black"</span>,     <span class="num">1</span>, <span class="num">18</span>/<span class="num">38</span>),
-    (<span class="str">"Top Line"</span>,      <span class="num">6</span>, <span class="num">5</span>/<span class="num">38</span>),  <span class="cmt"># worst bet!</span>
-]
-
-<span class="built">print</span>(<span class="str">"Bet              Payout   Win Prob   EV per $1    House Edge"</span>)
-<span class="built">print</span>(<span class="str">"─"</span> * <span class="num">62</span>)
-<span class="kw">for</span> name, payout, prob <span class="kw">in</span> bets:
-    ev = expected_value(payout, prob)
-    house_edge = -ev * <span class="num">100</span>
-    <span class="built">print</span>(<span class="str">f"</span>{name:<span class="num">17</span>}<span class="str"> </span>{payout:<span class="num">5</span>d}<span class="str">:1   </span>{prob:<span class="num">8.4</span>f}<span class="str">   $</span>{ev:<span class="num">+.4</span>f}<span class="str">      </span>{house_edge:<span class="num">.2</span>f}<span class="str">%"</span>)
-
-<span class="cmt"># How much do you expect to lose over an evening?</span>
-bets_per_hour = <span class="num">40</span>
-hours_playing = <span class="num">3</span>
-bet_size = <span class="num">10</span>  <span class="cmt"># dollars</span>
-total_bets = bets_per_hour * hours_playing
-house_edge_pct = <span class="num">5.26</span> / <span class="num">100</span>
-
-expected_loss = total_bets * bet_size * house_edge_pct
-<span class="built">print</span>(<span class="str">f"\n💸 Playing </span>{hours_playing}<span class="str">hrs at $</span>{bet_size}<span class="str">/bet, </span>{bets_per_hour}<span class="str"> bets/hr:"</span>)
-<span class="built">print</span>(<span class="str">f"   Expected loss: $</span>{expected_loss:<span class="num">.2</span>f}<span class="str">"</span>)</pre>
-    </div>
-  </div>
-
-  <div class="python-section">
-    <h3>4. Monte Carlo Simulation with Visualization</h3>
-    <p class="desc">Run thousands of simulated games and visualize the results using <code>matplotlib</code>. This is the gold standard technique for understanding probabilistic systems.</p>
-    <div class="code-block">
-      <div class="code-header">
-        <span>monte_carlo_roulette.py</span>
-        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
-      </div>
-      <pre class="code-content"><span class="kw">import</span> random
-<span class="kw">import</span> matplotlib.pyplot <span class="kw">as</span> plt
-<span class="kw">import</span> numpy <span class="kw">as</span> np
-
-<span class="kw">def</span> <span class="fn">simulate_session</span>(n_spins, bet_type=<span class="str">"red"</span>, bet_size=<span class="num">10</span>):
-    <span class="str">"""Simulate a roulette session and track bankroll over time."""</span>
-    pockets = [<span class="num">0</span>, <span class="str">"00"</span>] + <span class="built">list</span>(<span class="built">range</span>(<span class="num">1</span>, <span class="num">37</span>))
-    red = {<span class="num">1</span>,<span class="num">3</span>,<span class="num">5</span>,<span class="num">7</span>,<span class="num">9</span>,<span class="num">12</span>,<span class="num">14</span>,<span class="num">16</span>,<span class="num">18</span>,<span class="num">19</span>,<span class="num">21</span>,<span class="num">23</span>,<span class="num">25</span>,<span class="num">27</span>,<span class="num">30</span>,<span class="num">32</span>,<span class="num">34</span>,<span class="num">36</span>}
-    
-    bankroll = <span class="num">0</span>  <span class="cmt"># track cumulative profit/loss</span>
-    history = [<span class="num">0</span>]
-    
-    <span class="kw">for</span> _ <span class="kw">in</span> <span class="built">range</span>(n_spins):
-        result = random.choice(pockets)
-        <span class="kw">if</span> bet_type == <span class="str">"red"</span>:
-            <span class="kw">if</span> result <span class="kw">in</span> red:
-                bankroll += bet_size  <span class="cmt"># win 1:1</span>
-            <span class="kw">else</span>:
-                bankroll -= bet_size
-        history.append(bankroll)
-    
-    <span class="kw">return</span> history
-
-<span class="cmt"># Run multiple sessions to see the spread of outcomes</span>
-n_sessions = <span class="num">100</span>
-n_spins = <span class="num">500</span>
-
-plt.figure(figsize=(<span class="num">14</span>, <span class="num">8</span>))
-plt.style.use(<span class="str">'dark_background'</span>)
-
-all_final = []
-<span class="kw">for</span> i <span class="kw">in</span> <span class="built">range</span>(n_sessions):
-    history = simulate_session(n_spins)
-    all_final.append(history[-<span class="num">1</span>])
-    alpha = <span class="num">0.15</span> <span class="kw">if</span> n_sessions > <span class="num">20</span> <span class="kw">else</span> <span class="num">0.5</span>
-    color = <span class="str">'#15c96b'</span> <span class="kw">if</span> history[-<span class="num">1</span>] >= <span class="num">0</span> <span class="kw">else</span> <span class="str">'#e23636'</span>
-    plt.plot(history, alpha=alpha, linewidth=<span class="num">0.8</span>, color=color)
-
-<span class="cmt"># Expected value line</span>
-ev_per_spin = -<span class="num">10</span> * (<span class="num">2</span>/<span class="num">38</span>)  <span class="cmt"># EV for $10 red bet</span>
-ev_line = [ev_per_spin * i <span class="kw">for</span> i <span class="kw">in</span> <span class="built">range</span>(n_spins + <span class="num">1</span>)]
-plt.plot(ev_line, color=<span class="str">'#d4a843'</span>, linewidth=<span class="num">2.5</span>, label=<span class="str">'Expected Value'</span>)
-
-plt.axhline(y=<span class="num">0</span>, color=<span class="str">'white'</span>, linewidth=<span class="num">0.5</span>, alpha=<span class="num">0.3</span>)
-plt.xlabel(<span class="str">'Spin Number'</span>)
-plt.ylabel(<span class="str">'Profit / Loss ($)'</span>)
-plt.title(<span class="str">f'Monte Carlo: {n_sessions} Sessions × {n_spins} Spins ($10 Red Bets)'</span>)
-plt.legend()
-
-<span class="cmt"># Stats</span>
-winners = <span class="built">sum</span>(<span class="num">1</span> <span class="kw">for</span> f <span class="kw">in</span> all_final <span class="kw">if</span> f > <span class="num">0</span>)
-<span class="built">print</span>(<span class="str">f"Sessions profitable:  </span>{winners}<span class="str">/</span>{n_sessions}<span class="str"> (</span>{winners/n_sessions*<span class="num">100</span>:<span class="num">.1</span>f}<span class="str">%)"</span>)
-<span class="built">print</span>(<span class="str">f"Average final P/L:   $</span>{np.mean(all_final):<span class="num">.2</span>f}<span class="str">"</span>)
-<span class="built">print</span>(<span class="str">f"Std deviation:       $</span>{np.std(all_final):<span class="num">.2</span>f}<span class="str">"</span>)
-<span class="built">print</span>(<span class="str">f"Best session:        $</span>{<span class="built">max</span>(all_final):<span class="num">.2</span>f}<span class="str">"</span>)
-<span class="built">print</span>(<span class="str">f"Worst session:       $</span>{<span class="built">min</span>(all_final):<span class="num">.2</span>f}<span class="str">"</span>)
-
-plt.tight_layout()
-plt.savefig(<span class="str">'monte_carlo_roulette.png'</span>, dpi=<span class="num">150</span>)
-plt.show()</pre>
-    </div>
-  </div>
-
-  <div class="python-section">
-    <h3>5. Convergence & Law of Large Numbers</h3>
-    <p class="desc">Watch how the observed red frequency converges to the theoretical value as sample size grows. A powerful visual proof of the Law of Large Numbers.</p>
-    <div class="code-block">
-      <div class="code-header">
-        <span>convergence.py</span>
-        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
-      </div>
-      <pre class="code-content"><span class="kw">import</span> random
-<span class="kw">import</span> matplotlib.pyplot <span class="kw">as</span> plt
+    counts[color] += <span class="num">1</span>
+    <span class="built">print</span>(<span class="str">f"Spin {i+1:>2}: {str(result):>3} -> {color}"</span>)
+<span class="built">print</span>(<span class="str">f"Results: {counts}"</span>)</pre></div></div>
+<div class="python-section"><h3>2. Monte Carlo Convergence</h3><p class="desc">Watch red frequency converge to 47.37% over thousands of spins. Requires <code>matplotlib</code>.</p>
+<div class="code-block"><div class="code-header"><span>convergence.py</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre class="code-content"><span class="kw">import</span> random, matplotlib.pyplot <span class="kw">as</span> plt
 
 pockets = [<span class="num">0</span>, <span class="str">"00"</span>] + <span class="built">list</span>(<span class="built">range</span>(<span class="num">1</span>, <span class="num">37</span>))
 red = {<span class="num">1</span>,<span class="num">3</span>,<span class="num">5</span>,<span class="num">7</span>,<span class="num">9</span>,<span class="num">12</span>,<span class="num">14</span>,<span class="num">16</span>,<span class="num">18</span>,<span class="num">19</span>,<span class="num">21</span>,<span class="num">23</span>,<span class="num">25</span>,<span class="num">27</span>,<span class="num">30</span>,<span class="num">32</span>,<span class="num">34</span>,<span class="num">36</span>}
+N = <span class="num">10_000</span>
+rc, freq = <span class="num">0</span>, []
+<span class="kw">for</span> i <span class="kw">in</span> <span class="built">range</span>(<span class="num">1</span>, N+<span class="num">1</span>):
+    <span class="kw">if</span> random.choice(pockets) <span class="kw">in</span> red: rc += <span class="num">1</span>
+    freq.append(rc / i)
+plt.plot(freq, color=<span class="str">'crimson'</span>)
+plt.axhline(y=<span class="num">18</span>/<span class="num">38</span>, color=<span class="str">'gold'</span>, linestyle=<span class="str">'--'</span>)
+plt.xlabel(<span class="str">'Spins'</span>); plt.ylabel(<span class="str">'Red Frequency'</span>)
+plt.title(<span class="str">'Law of Large Numbers'</span>); plt.show()</pre></div></div>
+</div></div>
+
+<div class="tab-panel" data-tab="simulator"><div class="sim-layout">
+<div class="card"><h3>Configure</h3>
+<div class="form-group"><label>Bet Type</label><select id="rl-simBet"><option value="red">Red/Black (1:1)</option><option value="dozen">Dozen (2:1)</option><option value="straight">Single Number (35:1)</option></select></div>
+<div class="form-group"><label>Bet Size ($)</label><input type="number" id="rl-simSize" value="10" min="1"></div>
+<div class="form-group"><label>Spins per Session</label><input type="number" id="rl-simSpins" value="200" min="10" max="5000"></div>
+<div class="form-group"><label>Sessions</label><input type="number" id="rl-simSessions" value="40" min="1" max="300"></div>
+<button class="run-sim-btn" onclick="runMonteCarlo('roulette')">Run Simulation</button></div>
+<div class="card"><h3>Results</h3>
+<div class="sim-stats-row"><div class="stat-box"><div class="label">Avg P/L</div><div class="value" id="rl-simAvg">&mdash;</div></div><div class="stat-box"><div class="label">Win Rate</div><div class="value" id="rl-simWin">&mdash;</div></div><div class="stat-box"><div class="label">Best</div><div class="value hl-green" id="rl-simBest">&mdash;</div></div><div class="stat-box"><div class="label">Worst</div><div class="value hl-red" id="rl-simWorst">&mdash;</div></div></div>
+<div class="chart-container"><canvas id="rl-simChart"></canvas></div>
+<div class="sim-insight" id="rl-simInsight">Configure and click <strong>Run Simulation</strong>.</div></div>
+</div></div>
+</div>
+
+<div id="scenario-dice" class="scenario-panel">
+<div class="tab-panel active" data-tab="interact"><div class="interact-layout">
+<div class="visual-area">
+<div class="dice-container" id="dice-visuals"><div class="die-face" id="die1"></div></div>
+<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:center">
+<button class="action-btn" onclick="Dice.roll()">ROLL</button>
+<select id="dice-count" onchange="Dice.setCount(this.value)" style="padding:10px 14px;background:var(--bg-elevated);border:1px solid var(--border);border-radius:50px;color:var(--text-primary);font-family:'Outfit';font-size:.9rem;cursor:pointer"><option value="1">1 Die</option><option value="2" selected>2 Dice</option><option value="3">3 Dice</option></select></div>
+<div class="result-display"><div class="result-big" id="dice-resultNum" style="color:var(--text-dim)">&mdash;</div><div class="result-sub" id="dice-resultInfo">Click ROLL to start</div></div>
+</div><div>
+<div class="card mb-md"><h3>Roll Stats</h3><div class="stats-grid"><div class="stat-box"><div class="label">Rolls</div><div class="value" id="dice-total">0</div></div><div class="stat-box"><div class="label">Average</div><div class="value hl-gold" id="dice-avg">&mdash;</div></div></div><div id="dice-freqBars"></div><div class="freq-expected" id="dice-expected"></div></div>
+<div class="card"><h3>History</h3><div class="history-strip" id="dice-history"><span style="color:var(--text-dim);font-size:0.8rem">No rolls yet</span></div></div>
+</div></div></div>
+
+<div class="tab-panel" data-tab="learn"><div class="learn-grid">
+<div class="card"><h3>The 6-Sided Die</h3><p>Each face is equally likely:</p><div class="formula-box">P(any face) = 1/6 &asymp; 16.67%</div>
+<div class="think-prompt"><div class="think-label">&#129300; Think About It</div><p>After 5 rolls without a 6, what are your chances on the next roll?</p></div></div>
+<div class="card"><h3>Two Dice &mdash; Sum Probabilities</h3><p>With 2 dice: <strong class="hl-gold">36 combinations</strong>, but sums aren't equally likely!</p>
+<table class="bet-table"><thead><tr><th>Sum</th><th>Ways</th><th>Prob.</th></tr></thead><tbody>
+<tr><td>2</td><td>1</td><td>2.78%</td></tr><tr><td>7</td><td class="hl-gold">6</td><td class="hl-gold">16.67%</td></tr><tr><td>12</td><td>1</td><td>2.78%</td></tr></tbody></table>
+<p style="margin-top:10px"><strong>7 is the most common sum</strong> &mdash; 6 ways to make it!</p></div>
+<div class="card"><h3>Expected Value</h3><div class="formula-box">E[one die] = (1+2+3+4+5+6) &divide; 6 = <span class="hl-gold">3.5</span>
+E[two dice] = 3.5 + 3.5 = <span class="hl-gold">7.0</span></div></div>
+<div class="card"><h3>Complementary Probability</h3><div class="formula-box">P(at least one 6 with 2 dice):
+P(no sixes) = 5/6 &times; 5/6 = 25/36
+P(at least one 6) = 1 - 25/36 = <span class="hl-green">11/36 &asymp; 30.6%</span></div></div>
+</div></div>
+
+<div class="tab-panel" data-tab="python"><div class="python-sections">
+<div class="python-section"><h3>Simulate Dice Rolls</h3><p class="desc">Use <code>random.randint()</code> and <code>Counter</code> to analyze dice sums.</p>
+<div class="code-block"><div class="code-header"><span>dice_sim.py</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre class="code-content"><span class="kw">import</span> random
+<span class="kw">from</span> collections <span class="kw">import</span> Counter
 
 N = <span class="num">10_000</span>
-theoretical = <span class="num">18</span> / <span class="num">38</span>
+sums = [random.randint(<span class="num">1</span>,<span class="num">6</span>) + random.randint(<span class="num">1</span>,<span class="num">6</span>) <span class="kw">for</span> _ <span class="kw">in</span> <span class="built">range</span>(N)]
+counts = Counter(sums)
 
-<span class="cmt"># Track running frequency</span>
-red_count = <span class="num">0</span>
-frequencies = []
+ways = {<span class="num">2</span>:<span class="num">1</span>,<span class="num">3</span>:<span class="num">2</span>,<span class="num">4</span>:<span class="num">3</span>,<span class="num">5</span>:<span class="num">4</span>,<span class="num">6</span>:<span class="num">5</span>,<span class="num">7</span>:<span class="num">6</span>,<span class="num">8</span>:<span class="num">5</span>,<span class="num">9</span>:<span class="num">4</span>,<span class="num">10</span>:<span class="num">3</span>,<span class="num">11</span>:<span class="num">2</span>,<span class="num">12</span>:<span class="num">1</span>}
+<span class="built">print</span>(<span class="str">"Sum   Observed   Expected"</span>)
+<span class="kw">for</span> s <span class="kw">in</span> <span class="built">range</span>(<span class="num">2</span>, <span class="num">13</span>):
+    <span class="built">print</span>(<span class="str">f" {s:2}    {counts[s]/N*100:5.2f}%    {ways[s]/36*100:5.2f}%"</span>)</pre></div></div>
+</div></div>
 
-<span class="kw">for</span> i <span class="kw">in</span> <span class="built">range</span>(<span class="num">1</span>, N + <span class="num">1</span>):
-    result = random.choice(pockets)
-    <span class="kw">if</span> result <span class="kw">in</span> red:
-        red_count += <span class="num">1</span>
-    frequencies.append(red_count / i)
-
-plt.figure(figsize=(<span class="num">12</span>, <span class="num">6</span>))
-plt.style.use(<span class="str">'dark_background'</span>)
-plt.plot(frequencies, color=<span class="str">'#e23636'</span>, alpha=<span class="num">0.8</span>, linewidth=<span class="num">0.8</span>)
-plt.axhline(y=theoretical, color=<span class="str">'#d4a843'</span>, linestyle=<span class="str">'--'</span>,
-            linewidth=<span class="num">2</span>, label=<span class="str">f'Theoretical: </span>{theoretical:<span class="num">.4</span>f}<span class="str">'</span>)
-plt.xlabel(<span class="str">'Number of Spins'</span>)
-plt.ylabel(<span class="str">'Observed Red Frequency'</span>)
-plt.title(<span class="str">'Law of Large Numbers: Red Frequency Convergence'</span>)
-plt.legend()
-plt.tight_layout()
-plt.savefig(<span class="str">'convergence.png'</span>, dpi=<span class="num">150</span>)
-plt.show()</pre>
-    </div>
-  </div>
+<div class="tab-panel" data-tab="simulator"><div class="sim-layout">
+<div class="card"><h3>Configure</h3>
+<div class="form-group"><label>Dice</label><select id="dice-simCount"><option value="1">1</option><option value="2" selected>2</option><option value="3">3</option></select></div>
+<div class="form-group"><label>Target Sum</label><input type="number" id="dice-simTarget" value="7" min="1"></div>
+<div class="form-group"><label>Rolls per Session</label><input type="number" id="dice-simRolls" value="500" min="10"></div>
+<div class="form-group"><label>Sessions</label><input type="number" id="dice-simSessions" value="30" min="1"></div>
+<button class="run-sim-btn" onclick="runMonteCarlo('dice')">Run Simulation</button></div>
+<div class="card"><h3>Results</h3>
+<div class="sim-stats-row"><div class="stat-box"><div class="label">Observed</div><div class="value" id="dice-simObs">&mdash;</div></div><div class="stat-box"><div class="label">Expected</div><div class="value hl-gold" id="dice-simExp">&mdash;</div></div><div class="stat-box"><div class="label">Avg Hits</div><div class="value hl-green" id="dice-simHits">&mdash;</div></div><div class="stat-box"><div class="label">Std Dev</div><div class="value" id="dice-simSD">&mdash;</div></div></div>
+<div class="chart-container"><canvas id="dice-simChart"></canvas></div>
+<div class="sim-insight" id="dice-simInsight">Configure and run.</div></div>
+</div></div>
 </div>
 
-<!-- ==================== SIMULATOR TAB ==================== -->
-<div id="tab-simulator" class="tab-panel">
-  <div class="sim-layout">
-    <div class="sim-controls">
-      <h3>Simulation Config</h3>
-      <div class="form-group">
-        <label>Bet Type</label>
-        <select id="simBetType">
-          <option value="red">Red / Black (1:1)</option>
-          <option value="dozen">Dozen / Column (2:1)</option>
-          <option value="straight">Straight Up (35:1)</option>
-          <option value="street">Street (11:1)</option>
-          <option value="corner">Corner (8:1)</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label>Bet Size ($)</label>
-        <input type="number" id="simBetSize" value="10" min="1" max="1000">
-      </div>
-      <div class="form-group">
-        <label>Spins per Session</label>
-        <input type="number" id="simSpins" value="200" min="10" max="5000">
-      </div>
-      <div class="form-group">
-        <label>Number of Sessions</label>
-        <input type="number" id="simSessions" value="50" min="1" max="500">
-      </div>
-      <button class="run-sim-btn" onclick="runSimulation()">Run Monte Carlo</button>
-    </div>
+<div id="scenario-coins" class="scenario-panel">
+<div class="tab-panel active" data-tab="interact"><div class="interact-layout">
+<div class="visual-area">
+<div class="coin-visual coin-heads" id="coin-visual">H</div>
+<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:center">
+<button class="action-btn" onclick="Coins.flip()">FLIP</button>
+<select id="coin-count" onchange="Coins.setCount(this.value)" style="padding:10px 14px;background:var(--bg-elevated);border:1px solid var(--border);border-radius:50px;color:var(--text-primary);font-family:'Outfit';font-size:.9rem;cursor:pointer"><option value="1" selected>1 Coin</option><option value="5">5 Coins</option><option value="10">10 Coins</option></select></div>
+<div class="result-display"><div class="result-big" id="coin-resultNum" style="color:var(--text-dim)">&mdash;</div><div class="result-sub" id="coin-resultInfo">Click FLIP to start</div></div>
+</div><div>
+<div class="card mb-md"><h3>Flip Stats</h3><div class="stats-grid"><div class="stat-box"><div class="label">Flips</div><div class="value" id="coin-total">0</div></div><div class="stat-box"><div class="label">Heads %</div><div class="value hl-gold" id="coin-headsPct">0%</div></div></div>
+<div><div class="freq-row"><span class="freq-label" style="color:var(--gold)">Heads</span><div class="freq-bar-bg"><div class="freq-bar-fill" id="coin-hBar" style="width:0%;background:var(--gold)"></div></div><span class="freq-pct" id="coin-hPct">0%</span></div>
+<div class="freq-row"><span class="freq-label">Tails</span><div class="freq-bar-bg"><div class="freq-bar-fill" id="coin-tBar" style="width:0%;background:#777"></div></div><span class="freq-pct" id="coin-tPct">0%</span></div></div>
+<div class="freq-expected">Expected: 50% / 50%</div></div>
+<div class="card"><h3>History</h3><div class="history-strip" id="coin-history"><span style="color:var(--text-dim);font-size:0.8rem">No flips yet</span></div></div>
+</div></div></div>
 
-    <div class="sim-results">
-      <h3>Simulation Results</h3>
-      <div class="sim-stats-row" id="simStatsRow">
-        <div class="stat-box">
-          <div class="label">Avg P/L</div>
-          <div class="value" id="simAvgPL">—</div>
-        </div>
-        <div class="stat-box">
-          <div class="label">Win Rate</div>
-          <div class="value" id="simWinRate">—</div>
-        </div>
-        <div class="stat-box">
-          <div class="label">Best</div>
-          <div class="value highlight-green" id="simBest">—</div>
-        </div>
-        <div class="stat-box">
-          <div class="label">Worst</div>
-          <div class="value highlight-red" id="simWorst">—</div>
-        </div>
-        <div class="stat-box">
-          <div class="label">Std Dev</div>
-          <div class="value" id="simStdDev">—</div>
-        </div>
-        <div class="stat-box">
-          <div class="label">House Edge</div>
-          <div class="value highlight-gold" id="simHouseEdge">—</div>
-        </div>
-      </div>
-      <div class="chart-container">
-        <canvas id="simChart"></canvas>
-      </div>
-      <div class="sim-insight" id="simInsight">
-        Configure your simulation and click <strong>Run Monte Carlo</strong> to see probability in action. Try comparing different bet types and session lengths to understand how variance and house edge interact.
-      </div>
-    </div>
-  </div>
+<div class="tab-panel" data-tab="learn"><div class="learn-grid">
+<div class="card"><h3>The Simplest Experiment</h3><div class="formula-box">P(Heads) = 1/2 = 50%
+P(Tails) = 1/2 = 50%</div><p>A coin flip is a <strong>Bernoulli trial</strong> &mdash; exactly two outcomes.</p></div>
+<div class="card"><h3>Binomial Distribution</h3><div class="formula-box">P(k heads in n flips) = C(n,k) &times; p^k &times; (1-p)^(n-k)
+
+P(3 heads in 5 flips) = C(5,3) &times; 0.5&sup3; &times; 0.5&sup2;
+= 10 &times; 0.125 &times; 0.25 = <span class="hl-green">31.25%</span></div>
+<div class="think-prompt"><div class="think-label">&#129300; Think About It</div><p>What's the probability of 5 heads in a row? (0.5&sup5; = ?)</p></div></div>
+<div class="card"><h3>Multiplication Rule</h3><div class="formula-box">P(A and B) = P(A) &times; P(B)   (independent events)
+
+P(3 heads in a row) = 1/2 &times; 1/2 &times; 1/2 = <span class="hl-gold">1/8 = 12.5%</span></div></div>
+<div class="card"><h3>Streaks Are Normal</h3><p>In 100 flips, expect a streak of ~7. Humans think this looks "not random" but it's perfectly normal. Fake random sequences lack long streaks.</p></div>
+</div></div>
+
+<div class="tab-panel" data-tab="python"><div class="python-sections">
+<div class="python-section"><h3>Flip Coins & Analyze</h3>
+<div class="code-block"><div class="code-header"><span>coins.py</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre class="code-content"><span class="kw">import</span> random
+<span class="kw">from</span> math <span class="kw">import</span> comb
+
+<span class="cmt"># Flip 1000 coins</span>
+results = [random.choice([<span class="str">"H"</span>,<span class="str">"T"</span>]) <span class="kw">for</span> _ <span class="kw">in</span> <span class="built">range</span>(<span class="num">1000</span>)]
+heads = results.count(<span class="str">"H"</span>)
+<span class="built">print</span>(<span class="str">f"Heads: {heads}/1000 = {heads/10:.1f}%"</span>)
+
+<span class="cmt"># Binomial: P(exactly k heads in n flips)</span>
+n, p = <span class="num">10</span>, <span class="num">0.5</span>
+<span class="kw">for</span> k <span class="kw">in</span> <span class="built">range</span>(n+<span class="num">1</span>):
+    prob = comb(n,k) * p**k * (<span class="num">1</span>-p)**(n-k)
+    <span class="built">print</span>(<span class="str">f"P({k:2} heads) = {prob*100:5.2f}%"</span>)</pre></div></div>
+</div></div>
+
+<div class="tab-panel" data-tab="simulator"><div class="sim-layout">
+<div class="card"><h3>Configure</h3>
+<div class="form-group"><label>Coins per Flip</label><input type="number" id="coin-simCoins" value="10" min="1" max="100"></div>
+<div class="form-group"><label>Target Heads</label><input type="number" id="coin-simTarget" value="7" min="0"></div>
+<div class="form-group"><label>Flips per Session</label><input type="number" id="coin-simFlips" value="500" min="10"></div>
+<div class="form-group"><label>Sessions</label><input type="number" id="coin-simSessions" value="30" min="1"></div>
+<button class="run-sim-btn" onclick="runMonteCarlo('coins')">Run Simulation</button></div>
+<div class="card"><h3>Results</h3>
+<div class="sim-stats-row"><div class="stat-box"><div class="label">Observed</div><div class="value" id="coin-simObs">&mdash;</div></div><div class="stat-box"><div class="label">Expected</div><div class="value hl-gold" id="coin-simExp">&mdash;</div></div><div class="stat-box"><div class="label">Avg Hits</div><div class="value hl-green" id="coin-simHits">&mdash;</div></div><div class="stat-box"><div class="label">Std Dev</div><div class="value" id="coin-simSD">&mdash;</div></div></div>
+<div class="chart-container"><canvas id="coin-simChart"></canvas></div>
+<div class="sim-insight" id="coin-simInsight">Configure and run.</div></div>
+</div></div>
 </div>
 
+<div id="scenario-cards" class="scenario-panel">
+<div class="tab-panel active" data-tab="interact"><div class="interact-layout">
+<div class="visual-area">
+<div class="card-display face-down" id="card-visual"><div class="rank"></div><div class="suit"></div></div>
+<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:center">
+<button class="action-btn" onclick="Cards.draw()">DRAW</button>
+<button class="action-btn" onclick="Cards.shuffle()" style="background:linear-gradient(135deg,var(--accent-blue),#2a6ab0);font-size:.95rem;padding:12px 28px;box-shadow:0 4px 16px rgba(74,144,217,.3)">SHUFFLE</button></div>
+<div class="result-display"><div class="result-big" id="card-resultNum" style="color:var(--text-dim)">&mdash;</div><div class="result-sub" id="card-resultInfo">Draw from a 52-card deck</div></div>
+</div><div>
+<div class="card mb-md"><h3>Draw Stats</h3><div class="stats-grid"><div class="stat-box"><div class="label">Drawn</div><div class="value" id="card-drawn">0</div></div><div class="stat-box"><div class="label">Remaining</div><div class="value hl-gold" id="card-remaining">52</div></div></div>
+<div id="card-suitBars">
+<div class="freq-row"><span class="freq-label" style="color:#e23636">&hearts;</span><div class="freq-bar-bg"><div class="freq-bar-fill" id="card-hBar" style="width:0%;background:#e23636"></div></div><span class="freq-pct" id="card-hPct">0</span></div>
+<div class="freq-row"><span class="freq-label" style="color:#e23636">&diams;</span><div class="freq-bar-bg"><div class="freq-bar-fill" id="card-dBar" style="width:0%;background:#c94020"></div></div><span class="freq-pct" id="card-dPct">0</span></div>
+<div class="freq-row"><span class="freq-label">&spades;</span><div class="freq-bar-bg"><div class="freq-bar-fill" id="card-sBar" style="width:0%;background:#556"></div></div><span class="freq-pct" id="card-sPct">0</span></div>
+<div class="freq-row"><span class="freq-label">&clubs;</span><div class="freq-bar-bg"><div class="freq-bar-fill" id="card-cBar" style="width:0%;background:#445"></div></div><span class="freq-pct" id="card-cPct">0</span></div>
+</div></div>
+<div class="card"><h3>History</h3><div class="history-strip" id="card-history"><span style="color:var(--text-dim);font-size:0.8rem">Deck ready</span></div></div>
+</div></div></div>
+
+<div class="tab-panel" data-tab="learn"><div class="learn-grid">
+<div class="card"><h3>52-Card Deck</h3><div class="formula-box">4 suits &times; 13 ranks = 52 cards
+
+P(any card) = 1/52 &asymp; 1.92%
+P(heart) = 13/52 = 25%
+P(face card) = 12/52 &asymp; 23.1%</div></div>
+<div class="card"><h3>Dependent Events</h3><div class="formula-box">P(1st Ace) = 4/52
+P(2nd Ace | 1st was Ace) = 3/51
+P(both Aces) = 4/52 &times; 3/51 = <span class="hl-gold">0.45%</span></div>
+<p>Unlike dice/coins, drawing cards <strong>changes</strong> future probabilities.</p>
+<div class="think-prompt"><div class="think-label">&#129300; Think About It</div><p>After drawing 5 hearts, are you more or less likely to draw another? Why isn't this the Gambler's Fallacy?</p></div></div>
+<div class="card"><h3>Combinations</h3><div class="formula-box">C(n,k) = n! &divide; (k! &times; (n-k)!)
+Poker hands: C(52,5) = <span class="hl-gold">2,598,960</span></div></div>
+</div></div>
+
+<div class="tab-panel" data-tab="python"><div class="python-sections">
+<div class="python-section"><h3>Simulate Card Drawing</h3>
+<div class="code-block"><div class="code-header"><span>cards.py</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre class="code-content"><span class="kw">import</span> random
+ranks = [<span class="str">'A'</span>]+[<span class="built">str</span>(i) <span class="kw">for</span> i <span class="kw">in</span> <span class="built">range</span>(<span class="num">2</span>,<span class="num">11</span>)]+[<span class="str">'J'</span>,<span class="str">'Q'</span>,<span class="str">'K'</span>]
+suits = [<span class="str">'&hearts;'</span>,<span class="str">'&diams;'</span>,<span class="str">'&spades;'</span>,<span class="str">'&clubs;'</span>]
+deck = [(r,s) <span class="kw">for</span> s <span class="kw">in</span> suits <span class="kw">for</span> r <span class="kw">in</span> ranks]
+random.shuffle(deck)
+
+hand = [deck.pop() <span class="kw">for</span> _ <span class="kw">in</span> <span class="built">range</span>(<span class="num">5</span>)]
+<span class="built">print</span>(<span class="str">"Hand:"</span>, [<span class="str">f"{r}{s}"</span> <span class="kw">for</span> r,s <span class="kw">in</span> hand])
+
+aces = <span class="built">sum</span>(<span class="num">1</span> <span class="kw">for</span> r,s <span class="kw">in</span> deck <span class="kw">if</span> r==<span class="str">'A'</span>)
+<span class="built">print</span>(<span class="str">f"P(next Ace) = {aces}/{len(deck)} = {aces/len(deck)*100:.2f}%"</span>)</pre></div></div>
+</div></div>
+
+<div class="tab-panel" data-tab="simulator"><div class="sim-layout">
+<div class="card"><h3>Configure</h3>
+<div class="form-group"><label>Track</label><select id="card-simType"><option value="suit">Specific Suit</option><option value="face">Face Card</option><option value="ace">Ace</option></select></div>
+<div class="form-group"><label>Draws per Session</label><input type="number" id="card-simDraws" value="10" min="1" max="52"></div>
+<div class="form-group"><label>Sessions</label><input type="number" id="card-simSessions" value="1000" min="10"></div>
+<button class="run-sim-btn" onclick="runMonteCarlo('cards')">Run Simulation</button></div>
+<div class="card"><h3>Results</h3>
+<div class="sim-stats-row"><div class="stat-box"><div class="label">Avg Hits</div><div class="value hl-green" id="card-simHits">&mdash;</div></div><div class="stat-box"><div class="label">Expected</div><div class="value hl-gold" id="card-simExp">&mdash;</div></div><div class="stat-box"><div class="label">Max</div><div class="value" id="card-simMax">&mdash;</div></div><div class="stat-box"><div class="label">Min</div><div class="value" id="card-simMin">&mdash;</div></div></div>
+<div class="chart-container"><canvas id="card-simChart"></canvas></div>
+<div class="sim-insight" id="card-simInsight">Deals cards without replacement each session.</div></div>
+</div></div>
+</div>
+
+<div id="scenario-marbles" class="scenario-panel">
+<div class="tab-panel active" data-tab="interact"><div class="interact-layout">
+<div class="visual-area">
+<div style="margin-bottom:10px">
+<label style="font-size:.78rem;color:var(--text-muted);font-family:'JetBrains Mono',monospace">BAG SETUP:</label>
+<div style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap;justify-content:center">
+<label style="color:var(--red);font-size:.85rem">Red: <input type="number" id="marble-red" value="5" min="0" max="20" style="width:50px;padding:4px 8px;background:var(--bg-elevated);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);font-size:.85rem" onchange="Marbles.setup()"></label>
+<label style="color:var(--accent-blue);font-size:.85rem">Blue: <input type="number" id="marble-blue" value="3" min="0" max="20" style="width:50px;padding:4px 8px;background:var(--bg-elevated);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);font-size:.85rem" onchange="Marbles.setup()"></label>
+<label style="color:var(--green-glow);font-size:.85rem">Green: <input type="number" id="marble-green" value="2" min="0" max="20" style="width:50px;padding:4px 8px;background:var(--bg-elevated);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);font-size:.85rem" onchange="Marbles.setup()"></label>
+</div></div>
+<div class="marble-bag" id="marble-bag"></div>
+<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:center;margin-top:10px">
+<button class="action-btn" onclick="Marbles.draw()">DRAW</button>
+<button class="action-btn" onclick="Marbles.setup()" style="background:linear-gradient(135deg,var(--accent-teal),#0a8a7a);font-size:.95rem;padding:12px 28px;box-shadow:0 4px 16px rgba(20,184,166,.3)">RESET</button>
+<label style="font-size:.8rem;color:var(--text-muted);display:flex;align-items:center;gap:4px"><input type="checkbox" id="marble-replace" checked> Replace after draw</label>
+</div>
+<div class="result-display"><div class="result-big" id="marble-resultNum" style="color:var(--text-dim)">&mdash;</div><div class="result-sub" id="marble-resultInfo">Set up and draw!</div></div>
+</div><div>
+<div class="card mb-md"><h3>Draw Stats</h3><div class="stats-grid"><div class="stat-box"><div class="label">Draws</div><div class="value" id="marble-total">0</div></div><div class="stat-box"><div class="label">In Bag</div><div class="value hl-gold" id="marble-inBag">10</div></div></div><div id="marble-freqBars"></div><div class="freq-expected" id="marble-expected"></div></div>
+<div class="card"><h3>History</h3><div class="history-strip" id="marble-history"><span style="color:var(--text-dim);font-size:0.8rem">Ready</span></div></div>
+</div></div></div>
+
+<div class="tab-panel" data-tab="learn"><div class="learn-grid">
+<div class="card"><h3>Classic Probability</h3><div class="formula-box">Bag: 5 red, 3 blue, 2 green = 10 total
+P(red) = 5/10 = 50%
+P(blue) = 3/10 = 30%
+P(green) = 2/10 = 20%</div></div>
+<div class="card"><h3>With vs. Without Replacement</h3><div class="formula-box"><span class="hl-green">With replacement:</span> P stays the same (independent)
+<span class="hl-red">Without replacement:</span> P changes (dependent)
+
+Drawing 2 reds from 5R+5B:
+With: 5/10 &times; 5/10 = 25.0%
+Without: 5/10 &times; 4/9 = <span class="hl-gold">22.2%</span></div>
+<div class="think-prompt"><div class="think-label">&#129300; Think About It</div><p>Toggle the replacement checkbox and compare results!</p></div></div>
+<div class="card"><h3>Conditional Probability</h3><div class="formula-box">P(A | B) = "P of A given B happened"
+
+P(2nd red | 1st was red) = 4/9
+P(2nd red | 1st was blue) = 5/9</div></div>
+</div></div>
+
+<div class="tab-panel" data-tab="python"><div class="python-sections">
+<div class="python-section"><h3>Marble Simulation</h3>
+<div class="code-block"><div class="code-header"><span>marbles.py</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre class="code-content"><span class="kw">import</span> random
+<span class="kw">from</span> collections <span class="kw">import</span> Counter
+
+bag = [<span class="str">"red"</span>]*<span class="num">5</span> + [<span class="str">"blue"</span>]*<span class="num">3</span> + [<span class="str">"green"</span>]*<span class="num">2</span>
+
+<span class="cmt"># With replacement</span>
+draws = [random.choice(bag) <span class="kw">for</span> _ <span class="kw">in</span> <span class="built">range</span>(<span class="num">10_000</span>)]
+<span class="built">print</span>(<span class="str">"With replacement:"</span>)
+<span class="kw">for</span> c, n <span class="kw">in</span> Counter(draws).most_common():
+    <span class="built">print</span>(<span class="str">f"  {c}: {n/100:.1f}%"</span>)
+
+<span class="cmt"># Without replacement: P(2 reds in a row)</span>
+N = <span class="num">100_000</span>
+hits = <span class="built">sum</span>(<span class="num">1</span> <span class="kw">for</span> _ <span class="kw">in</span> <span class="built">range</span>(N)
+    <span class="kw">if</span> random.sample(bag,<span class="num">2</span>) == [<span class="str">"red"</span>,<span class="str">"red"</span>])
+<span class="built">print</span>(<span class="str">f"P(2 reds w/o replacement): {hits/N*100:.2f}%"</span>)
+<span class="built">print</span>(<span class="str">f"Exact: {5/10*4/9*100:.2f}%"</span>)</pre></div></div>
+</div></div>
+
+<div class="tab-panel" data-tab="simulator"><div class="sim-layout">
+<div class="card"><h3>Configure</h3>
+<div class="form-group"><label>Red</label><input type="number" id="mb-simRed" value="5" min="0"></div>
+<div class="form-group"><label>Blue</label><input type="number" id="mb-simBlue" value="3" min="0"></div>
+<div class="form-group"><label>Green</label><input type="number" id="mb-simGreen" value="2" min="0"></div>
+<div class="form-group"><label>Target Color</label><select id="mb-simTarget"><option value="red">Red</option><option value="blue">Blue</option><option value="green">Green</option></select></div>
+<div class="form-group"><label>Draws/Session</label><input type="number" id="mb-simDraws" value="100" min="1"></div>
+<div class="form-group"><label>Sessions</label><input type="number" id="mb-simSessions" value="50" min="1"></div>
+<button class="run-sim-btn" onclick="runMonteCarlo('marbles')">Run Simulation</button></div>
+<div class="card"><h3>Results (With Replacement)</h3>
+<div class="sim-stats-row"><div class="stat-box"><div class="label">Observed</div><div class="value" id="mb-simObs">&mdash;</div></div><div class="stat-box"><div class="label">Expected</div><div class="value hl-gold" id="mb-simExp">&mdash;</div></div><div class="stat-box"><div class="label">Avg Hits</div><div class="value hl-green" id="mb-simHits">&mdash;</div></div><div class="stat-box"><div class="label">Std Dev</div><div class="value" id="mb-simSD">&mdash;</div></div></div>
+<div class="chart-container"><canvas id="mb-simChart"></canvas></div>
+<div class="sim-insight" id="mb-simInsight">Configure and run.</div></div>
+</div></div>
+</div>
+
+</div>
 <script>
-// ==================== US ROULETTE DATA ====================
-const WHEEL_ORDER = [0,28,9,26,30,11,7,20,32,17,5,22,34,15,3,24,36,13,1,
-                     '00',27,10,25,29,12,8,19,31,18,6,21,33,16,4,23,35,14,2];
-const RED = new Set([1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36]);
-const BLACK = new Set([2,4,6,8,10,11,13,15,17,20,22,24,26,28,29,31,33,35]);
+// ===================== GLOBAL =====================
+let currentScenario='roulette',currentTab='interact';
 
-function getColor(n) {
-  if (n === 0 || n === '00') return 'green';
-  if (RED.has(Number(n))) return 'red';
-  return 'black';
-}
-
-// ==================== WHEEL DRAWING ====================
-const canvas = document.getElementById('rouletteWheel');
-const ctx = canvas.getContext('2d');
-const cx = 210, cy = 210, outerR = 195, innerR = 130, textR = 163;
-let currentAngle = 0;
-let spinning = false;
-
-function drawWheel(angle = 0) {
-  ctx.clearRect(0, 0, 420, 420);
-  const sliceAngle = (2 * Math.PI) / 38;
-
-  // Outer ring shadow
-  ctx.save();
-  ctx.beginPath();
-  ctx.arc(cx, cy, outerR + 5, 0, Math.PI * 2);
-  ctx.fillStyle = 'rgba(0,0,0,0.4)';
-  ctx.fill();
-  ctx.restore();
-
-  for (let i = 0; i < 38; i++) {
-    const startAngle = angle + i * sliceAngle;
-    const endAngle = startAngle + sliceAngle;
-    const num = WHEEL_ORDER[i];
-    const color = getColor(num);
-
-    // Slice
-    ctx.beginPath();
-    ctx.moveTo(cx, cy);
-    ctx.arc(cx, cy, outerR, startAngle, endAngle);
-    ctx.closePath();
-
-    if (color === 'red') ctx.fillStyle = '#c62828';
-    else if (color === 'green') ctx.fillStyle = '#1b7a3d';
-    else ctx.fillStyle = '#1a1a2e';
-    ctx.fill();
-    ctx.strokeStyle = '#2a2a3a';
-    ctx.lineWidth = 0.5;
-    ctx.stroke();
-
-    // Number text
-    ctx.save();
-    ctx.translate(cx, cy);
-    ctx.rotate(startAngle + sliceAngle / 2);
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillStyle = '#fff';
-    ctx.font = 'bold 11px "JetBrains Mono", monospace';
-    ctx.fillText(String(num), textR, 0);
-    ctx.restore();
-  }
-
-  // Inner circle
-  ctx.beginPath();
-  ctx.arc(cx, cy, innerR, 0, Math.PI * 2);
-  const grad = ctx.createRadialGradient(cx, cy, 20, cx, cy, innerR);
-  grad.addColorStop(0, '#2a3040');
-  grad.addColorStop(1, '#151920');
-  ctx.fillStyle = grad;
-  ctx.fill();
-  ctx.strokeStyle = '#d4a843';
-  ctx.lineWidth = 2;
-  ctx.stroke();
-
-  // Center decoration
-  ctx.beginPath();
-  ctx.arc(cx, cy, 40, 0, Math.PI * 2);
-  ctx.fillStyle = '#1a1e28';
-  ctx.fill();
-  ctx.strokeStyle = '#d4a84388';
-  ctx.lineWidth = 1;
-  ctx.stroke();
-
-  ctx.font = 'bold 14px "Playfair Display", serif';
-  ctx.fillStyle = '#d4a843';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText('US', cx, cy - 7);
-  ctx.font = '10px "JetBrains Mono", monospace';
-  ctx.fillStyle = '#8a7a5a';
-  ctx.fillText('ROULETTE', cx, cy + 8);
-
-  // Pointer (top)
-  ctx.beginPath();
-  ctx.moveTo(cx, cy - outerR - 12);
-  ctx.lineTo(cx - 10, cy - outerR + 8);
-  ctx.lineTo(cx + 10, cy - outerR + 8);
-  ctx.closePath();
-  ctx.fillStyle = '#d4a843';
-  ctx.fill();
-  ctx.strokeStyle = '#b8922e';
-  ctx.lineWidth = 1;
-  ctx.stroke();
-}
-
-drawWheel();
-
-// ==================== SPIN LOGIC ====================
-let history = [];
-let stats = { red: 0, black: 0, green: 0, total: 0 };
-
-function spinWheel() {
-  if (spinning) return;
-  spinning = true;
-  document.getElementById('spinBtn').disabled = true;
-
-  const sliceAngle = (2 * Math.PI) / 38;
-  const winIndex = Math.floor(Math.random() * 38);
-  // The pointer is at top (- PI/2). We need the winning slice center to align there.
-  const targetAngle = -(winIndex * sliceAngle + sliceAngle / 2) - Math.PI / 2;
-  const fullRotations = (6 + Math.random() * 4) * Math.PI * 2;
-  const finalAngle = currentAngle + fullRotations + (targetAngle - (currentAngle % (Math.PI * 2)));
-
-  const duration = 4000 + Math.random() * 1500;
-  const startTime = performance.now();
-  const startAngle = currentAngle;
-
-  function animate(now) {
-    const elapsed = now - startTime;
-    const progress = Math.min(elapsed / duration, 1);
-    // Easing: cubic ease-out
-    const eased = 1 - Math.pow(1 - progress, 3);
-    currentAngle = startAngle + (finalAngle - startAngle) * eased;
-    drawWheel(currentAngle);
-
-    if (progress < 1) {
-      requestAnimationFrame(animate);
-    } else {
-      currentAngle = finalAngle;
-      spinning = false;
-      document.getElementById('spinBtn').disabled = false;
-      onSpinComplete(WHEEL_ORDER[winIndex]);
-    }
-  }
-  requestAnimationFrame(animate);
-}
-
-function onSpinComplete(result) {
-  const color = getColor(result);
-  stats.total++;
-  stats[color]++;
-  history.unshift({ number: result, color });
-
-  // Result display
-  const numEl = document.getElementById('resultNumber');
-  numEl.textContent = String(result);
-  numEl.className = 'result-number ' + color;
-
-  const props = [];
-  if (color !== 'green') {
-    const n = Number(result);
-    props.push(color);
-    props.push(n % 2 === 0 ? 'even' : 'odd');
-    props.push(n <= 18 ? '1-18' : '19-36');
-    if (n <= 12) props.push('1st dozen');
-    else if (n <= 24) props.push('2nd dozen');
-    else props.push('3rd dozen');
-  } else {
-    props.push('green', 'house pocket');
-  }
-  document.getElementById('resultInfo').textContent = props.join(' · ');
-
-  // Stats
-  document.getElementById('totalSpins').textContent = stats.total;
-  const rPct = ((stats.red / stats.total) * 100).toFixed(1);
-  const bPct = ((stats.black / stats.total) * 100).toFixed(1);
-  const gPct = ((stats.green / stats.total) * 100).toFixed(1);
-  document.getElementById('redPct').textContent = rPct + '%';
-  document.getElementById('blackPct').textContent = bPct + '%';
-  document.getElementById('greenPct').textContent = gPct + '%';
-
-  document.getElementById('redBar').style.width = rPct + '%';
-  document.getElementById('blackBar').style.width = bPct + '%';
-  document.getElementById('greenBar').style.width = gPct + '%';
-  document.getElementById('redBarPct').textContent = rPct + '%';
-  document.getElementById('blackBarPct').textContent = bPct + '%';
-  document.getElementById('greenBarPct').textContent = gPct + '%';
-
-  // History chips
-  const strip = document.getElementById('historyStrip');
-  if (stats.total === 1) strip.innerHTML = '';
-  const chip = document.createElement('div');
-  chip.className = 'history-chip ' + color;
-  chip.textContent = String(result);
-  strip.prepend(chip);
-  // Limit to 60 chips
-  while (strip.children.length > 60) strip.removeChild(strip.lastChild);
-}
-
-// ==================== TAB SWITCHING ====================
-function switchTab(name) {
-  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  document.getElementById('tab-' + name).classList.add('active');
-  event.target.classList.add('active');
-}
-
-// ==================== COPY CODE ====================
-function copyCode(btn) {
-  const pre = btn.closest('.code-block').querySelector('pre');
-  const text = pre.textContent;
-  navigator.clipboard.writeText(text).then(() => {
-    btn.textContent = 'Copied!';
-    setTimeout(() => btn.textContent = 'Copy', 2000);
-  });
-}
-
-// ==================== MONTE CARLO SIMULATOR ====================
-const BET_CONFIG = {
-  red:      { payout: 1, winSlots: 18, name: 'Red/Black' },
-  dozen:    { payout: 2, winSlots: 12, name: 'Dozen/Column' },
-  straight: { payout: 35, winSlots: 1, name: 'Straight Up' },
-  street:   { payout: 11, winSlots: 3, name: 'Street' },
-  corner:   { payout: 8, winSlots: 4, name: 'Corner' },
-};
-
-let simChartInstance = null;
-
-function runSimulation() {
-  const betType = document.getElementById('simBetType').value;
-  const betSize = parseInt(document.getElementById('simBetSize').value) || 10;
-  const nSpins = parseInt(document.getElementById('simSpins').value) || 200;
-  const nSessions = parseInt(document.getElementById('simSessions').value) || 50;
-  const config = BET_CONFIG[betType];
-
-  const winProb = config.winSlots / 38;
-  const allSessions = [];
-  const finals = [];
-
-  for (let s = 0; s < nSessions; s++) {
-    const session = [0];
-    let bankroll = 0;
-    for (let i = 0; i < nSpins; i++) {
-      const roll = Math.random();
-      if (roll < winProb) {
-        bankroll += betSize * config.payout;
-      } else {
-        bankroll -= betSize;
-      }
-      session.push(bankroll);
-    }
-    allSessions.push(session);
-    finals.push(bankroll);
-  }
-
-  // Stats
-  const avg = finals.reduce((a, b) => a + b, 0) / finals.length;
-  const winners = finals.filter(f => f > 0).length;
-  const best = Math.max(...finals);
-  const worst = Math.min(...finals);
-  const variance = finals.reduce((s, v) => s + (v - avg) ** 2, 0) / finals.length;
-  const stddev = Math.sqrt(variance);
-  const theoreticalEdge = ((38 - config.winSlots * (config.payout + 1)) / 38 * 100);
-
-  document.getElementById('simAvgPL').textContent = '$' + avg.toFixed(0);
-  document.getElementById('simAvgPL').style.color = avg >= 0 ? 'var(--green-glow)' : 'var(--red)';
-  document.getElementById('simWinRate').textContent = ((winners / nSessions) * 100).toFixed(1) + '%';
-  document.getElementById('simBest').textContent = '$' + best.toFixed(0);
-  document.getElementById('simWorst').textContent = '$' + worst.toFixed(0);
-  document.getElementById('simStdDev').textContent = '$' + stddev.toFixed(0);
-  document.getElementById('simHouseEdge').textContent = theoreticalEdge.toFixed(2) + '%';
-
-  // Draw chart with plain canvas
-  drawSimChart(allSessions, nSpins, betSize, config);
-
-  // Insight
-  const totalWagered = betSize * nSpins;
-  const observedEdge = (-avg / totalWagered * 100).toFixed(2);
-  document.getElementById('simInsight').innerHTML = `
-    <strong>Analysis:</strong> Over ${nSessions} sessions of ${nSpins} spins each betting $${betSize} on ${config.name}:
-    The average player lost <strong>$${Math.abs(avg).toFixed(0)}</strong> per session.
-    <strong>${winners}</strong> of ${nSessions} sessions (${((winners/nSessions)*100).toFixed(1)}%) ended profitable.
-    Observed house edge: <strong>${observedEdge}%</strong> vs theoretical <strong>${theoreticalEdge.toFixed(2)}%</strong>.
-    Total wagered per session: $${totalWagered.toLocaleString()}.
-    ${nSpins < 100 ? '<br><em>Try increasing spins to see the house edge converge!</em>' : ''}
-  `;
-}
-
-function drawSimChart(allSessions, nSpins, betSize, config) {
-  const canvas = document.getElementById('simChart');
-  const container = canvas.parentElement;
-  canvas.width = container.clientWidth * 2;
-  canvas.height = 300 * 2;
-  canvas.style.width = container.clientWidth + 'px';
-  canvas.style.height = '300px';
-
-  const ctx = canvas.getContext('2d');
-  ctx.scale(2, 2);
-  const W = container.clientWidth;
-  const H = 300;
-  const pad = { top: 20, right: 20, bottom: 35, left: 60 };
-  const plotW = W - pad.left - pad.right;
-  const plotH = H - pad.top - pad.bottom;
-
-  ctx.clearRect(0, 0, W, H);
-
-  // Find range
-  let minVal = 0, maxVal = 0;
-  allSessions.forEach(s => {
-    s.forEach(v => {
-      if (v < minVal) minVal = v;
-      if (v > maxVal) maxVal = v;
-    });
-  });
-  const range = maxVal - minVal || 1;
-  const yPad = range * 0.1;
-  minVal -= yPad;
-  maxVal += yPad;
-
-  function toX(i) { return pad.left + (i / nSpins) * plotW; }
-  function toY(v) { return pad.top + plotH - ((v - minVal) / (maxVal - minVal)) * plotH; }
-
-  // Grid
-  ctx.strokeStyle = '#ffffff10';
-  ctx.lineWidth = 0.5;
-  const yTicks = 5;
-  for (let i = 0; i <= yTicks; i++) {
-    const val = minVal + (maxVal - minVal) * (i / yTicks);
-    const y = toY(val);
-    ctx.beginPath();
-    ctx.moveTo(pad.left, y);
-    ctx.lineTo(W - pad.right, y);
-    ctx.stroke();
-
-    ctx.fillStyle = '#7a8298';
-    ctx.font = '10px "JetBrains Mono"';
-    ctx.textAlign = 'right';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('$' + val.toFixed(0), pad.left - 8, y);
-  }
-
-  // Zero line
-  if (minVal < 0 && maxVal > 0) {
-    ctx.strokeStyle = '#ffffff30';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(pad.left, toY(0));
-    ctx.lineTo(W - pad.right, toY(0));
-    ctx.stroke();
-  }
-
-  // Session lines
-  allSessions.forEach(session => {
-    const final = session[session.length - 1];
-    const baseColor = final >= 0 ? [21, 201, 107] : [226, 54, 54];
-    ctx.strokeStyle = `rgba(${baseColor.join(',')}, 0.12)`;
-    ctx.lineWidth = 0.7;
-    ctx.beginPath();
-    for (let i = 0; i <= nSpins; i++) {
-      const x = toX(i);
-      const y = toY(session[i]);
-      if (i === 0) ctx.moveTo(x, y);
-      else ctx.lineTo(x, y);
-    }
-    ctx.stroke();
-  });
-
-  // EV line
-  const evPerSpin = -betSize * ((38 - config.winSlots * (config.payout + 1)) / 38);
-  ctx.strokeStyle = '#d4a843';
-  ctx.lineWidth = 2;
-  ctx.setLineDash([6, 3]);
-  ctx.beginPath();
-  for (let i = 0; i <= nSpins; i++) {
-    const x = toX(i);
-    const y = toY(evPerSpin * i);
-    if (i === 0) ctx.moveTo(x, y);
-    else ctx.lineTo(x, y);
-  }
-  ctx.stroke();
-  ctx.setLineDash([]);
-
-  // Labels
-  ctx.fillStyle = '#d4a843';
-  ctx.font = '10px "JetBrains Mono"';
-  ctx.textAlign = 'left';
-  ctx.fillText('Expected Value', toX(nSpins * 0.6), toY(evPerSpin * nSpins * 0.6) - 10);
-
-  // X axis labels
-  ctx.fillStyle = '#7a8298';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'top';
-  const xSteps = 5;
-  for (let i = 0; i <= xSteps; i++) {
-    const spin = Math.round((nSpins / xSteps) * i);
-    ctx.fillText(spin, toX(spin), H - pad.bottom + 10);
-  }
-  ctx.fillText('Spin #', W / 2, H - 8);
-}
-
-// Handle resize for chart
-window.addEventListener('resize', () => {
-  if (document.getElementById('tab-simulator').classList.contains('active')) {
-    const canvas = document.getElementById('simChart');
-    if (canvas.width > 0) {
-      // Re-run if chart exists
-    }
-  }
+document.getElementById('scenarioBar').addEventListener('click',e=>{
+  const btn=e.target.closest('.scenario-btn'); if(!btn) return;
+  document.querySelectorAll('.scenario-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  currentScenario=btn.dataset.scenario;
+  document.querySelectorAll('.scenario-panel').forEach(p=>p.style.display='none');
+  document.getElementById('scenario-'+currentScenario).style.display='block';
+  switchInnerTab('interact');
+  document.querySelectorAll('.tab-btn').forEach(t=>t.classList.remove('active'));
+  document.querySelector('.tab-btn[data-tab="interact"]').classList.add('active');
+  if(currentScenario==='dice') Dice.setCount(document.getElementById('dice-count').value);
+  if(currentScenario==='marbles') Marbles.setup();
 });
-</script>
 
+document.getElementById('tabBar').addEventListener('click',e=>{
+  const btn=e.target.closest('.tab-btn'); if(!btn) return;
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  switchInnerTab(btn.dataset.tab);
+});
+
+function switchInnerTab(tab){
+  currentTab=tab;
+  const panel=document.getElementById('scenario-'+currentScenario);
+  if(!panel) return;
+  panel.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  const t=panel.querySelector('.tab-panel[data-tab="'+tab+'"]');
+  if(t) t.classList.add('active');
+}
+
+function copyCode(btn){
+  const pre=btn.closest('.code-block').querySelector('pre');
+  navigator.clipboard.writeText(pre.textContent).then(()=>{btn.textContent='Copied!';setTimeout(()=>btn.textContent='Copy',1500);});
+}
+
+// ===================== ROULETTE =====================
+const Roulette=(()=>{
+  const WO=[0,28,9,26,30,11,7,20,32,17,5,22,34,15,3,24,36,13,1,'00',27,10,25,29,12,8,19,31,18,6,21,33,16,4,23,35,14,2];
+  const RED=new Set([1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36]);
+  function getColor(n){return(n===0||n==='00')?'green':RED.has(Number(n))?'red':'black';}
+
+  const canvas=document.getElementById('rouletteWheel'),ctx=canvas.getContext('2d');
+  const cx=210,cy=210,oR=195,iR=130,tR=163;
+  let cAngle=0,spinning=false,stats={red:0,black:0,green:0,total:0};
+
+  function draw(a=0){
+    ctx.clearRect(0,0,420,420);
+    const sl=(2*Math.PI)/38;
+    ctx.save();ctx.beginPath();ctx.arc(cx,cy,oR+5,0,Math.PI*2);ctx.fillStyle='rgba(0,0,0,0.35)';ctx.fill();ctx.restore();
+    for(let i=0;i<38;i++){
+      const sa=a+i*sl,ea=sa+sl,n=WO[i],c=getColor(n);
+      ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,oR,sa,ea);ctx.closePath();
+      ctx.fillStyle=c==='red'?'#c62828':c==='green'?'#1b7a3d':'#1a1a2e';ctx.fill();
+      ctx.strokeStyle='#2a2a3a';ctx.lineWidth=0.5;ctx.stroke();
+      ctx.save();ctx.translate(cx,cy);ctx.rotate(sa+sl/2);
+      ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle='#fff';
+      ctx.font='bold 11px "JetBrains Mono",monospace';ctx.fillText(String(n),tR,0);ctx.restore();
+    }
+    ctx.beginPath();ctx.arc(cx,cy,iR,0,Math.PI*2);
+    const g=ctx.createRadialGradient(cx,cy,20,cx,cy,iR);
+    g.addColorStop(0,'#2a3040');g.addColorStop(1,'#151920');ctx.fillStyle=g;ctx.fill();
+    ctx.strokeStyle='#d4a843';ctx.lineWidth=2;ctx.stroke();
+    ctx.beginPath();ctx.arc(cx,cy,38,0,Math.PI*2);ctx.fillStyle='#1a1e28';ctx.fill();
+    ctx.font='bold 13px "Fraunces",serif';ctx.fillStyle='#d4a843';ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText('US',cx,cy-7);ctx.font='9px "JetBrains Mono",monospace';ctx.fillStyle='#8a7a5a';ctx.fillText('ROULETTE',cx,cy+8);
+    ctx.beginPath();ctx.moveTo(cx,cy-oR-10);ctx.lineTo(cx-9,cy-oR+7);ctx.lineTo(cx+9,cy-oR+7);ctx.closePath();
+    ctx.fillStyle='#d4a843';ctx.fill();
+  }
+  draw();
+
+  function spin(){
+    if(spinning) return;
+    spinning=true;document.getElementById('spinBtn').disabled=true;
+    const sl=(2*Math.PI)/38,wi=Math.floor(Math.random()*38);
+    const tgt=-(wi*sl+sl/2)-Math.PI/2;
+    const fr=(6+Math.random()*4)*Math.PI*2;
+    const fin=cAngle+fr+(tgt-(cAngle%(Math.PI*2)));
+    const dur=4000+Math.random()*1500,st=performance.now(),sa=cAngle;
+    (function anim(now){
+      const p=Math.min((now-st)/dur,1),e=1-Math.pow(1-p,3);
+      cAngle=sa+(fin-sa)*e;draw(cAngle);
+      if(p<1) requestAnimationFrame(anim);
+      else{cAngle=fin;spinning=false;document.getElementById('spinBtn').disabled=false;onResult(WO[wi]);}
+    })(performance.now());
+  }
+
+  function onResult(r){
+    const c=getColor(r);stats.total++;stats[c]++;
+    const el=document.getElementById('rl-resultNum');el.textContent=String(r);
+    el.style.color=c==='red'?'var(--red)':c==='green'?'var(--green-glow)':'#ccc';
+    const p=c==='green'?['green','house pocket']:((n)=>[c,n%2===0?'even':'odd',n<=18?'1-18':'19-36'])(Number(r));
+    document.getElementById('rl-resultInfo').textContent=p.join(' · ');
+    document.getElementById('rl-total').textContent=stats.total;
+    ['red','black','green'].forEach(x=>{
+      const v=((stats[x]/stats.total)*100).toFixed(1);
+      document.getElementById('rl-'+x+'Pct').textContent=v+'%';
+      document.getElementById('rl-'+x+'Bar').style.width=v+'%';
+      document.getElementById('rl-'+x+'BarPct').textContent=v+'%';
+    });
+    const s=document.getElementById('rl-history');
+    if(stats.total===1)s.innerHTML='';
+    const ch=document.createElement('div');ch.className='history-chip';
+    ch.style.background=c==='red'?'var(--red)':c==='green'?'var(--green-felt)':'var(--black-slot)';
+    ch.style.color='white';ch.textContent=String(r);s.prepend(ch);
+    while(s.children.length>50)s.removeChild(s.lastChild);
+  }
+  return{spin};
+})();
+
+// ===================== DICE =====================
+const Dice=(()=>{
+  let nd=2,stats={total:0,sums:{}},rolling=false;
+  const DP={1:[[1,1]],2:[[0,2],[2,0]],3:[[0,2],[1,1],[2,0]],4:[[0,0],[0,2],[2,0],[2,2]],5:[[0,0],[0,2],[1,1],[2,0],[2,2]],6:[[0,0],[0,1],[0,2],[2,0],[2,1],[2,2]]};
+
+  function renderDie(el,v){
+    el.innerHTML='';
+    for(let r=0;r<3;r++)for(let c=0;c<3;c++){
+      const d=document.createElement('div');d.className='dot';
+      if(DP[v].some(([dr,dc])=>dr===r&&dc===c))d.style.display='block';
+      el.appendChild(d);
+    }
+  }
+
+  function setCount(n){
+    nd=parseInt(n);
+    const ct=document.getElementById('dice-visuals');ct.innerHTML='';
+    for(let i=0;i<nd;i++){const d=document.createElement('div');d.className='die-face';ct.appendChild(d);renderDie(d,Math.ceil(Math.random()*6));}
+    stats={total:0,sums:{}};updateStats();
+    document.getElementById('dice-history').innerHTML='<span style="color:var(--text-dim);font-size:0.8rem">No rolls yet</span>';
+    document.getElementById('dice-resultNum').textContent='—';document.getElementById('dice-resultNum').style.color='var(--text-dim)';
+  }
+
+  function roll(){
+    if(rolling)return;rolling=true;
+    const dice=document.querySelectorAll('#dice-visuals .die-face');
+    dice.forEach(d=>d.classList.add('rolling'));
+    let f=0;const iv=setInterval(()=>{dice.forEach(d=>renderDie(d,Math.ceil(Math.random()*6)));f++;if(f>10){clearInterval(iv);finish(dice);}},80);
+  }
+
+  function finish(dice){
+    const vals=[];
+    dice.forEach(d=>{d.classList.remove('rolling');const v=Math.ceil(Math.random()*6);vals.push(v);renderDie(d,v);});
+    rolling=false;
+    const sum=vals.reduce((a,b)=>a+b,0);
+    stats.total++;stats.sums[sum]=(stats.sums[sum]||0)+1;
+    document.getElementById('dice-resultNum').textContent=sum;document.getElementById('dice-resultNum').style.color='var(--gold)';
+    document.getElementById('dice-resultInfo').textContent=vals.join(' + ')+' = '+sum;
+    updateStats();
+    const s=document.getElementById('dice-history');if(stats.total===1)s.innerHTML='';
+    const ch=document.createElement('div');ch.className='history-chip';
+    const h=(sum-nd)/(nd*6-nd)*120;ch.style.background=`hsl(${h},60%,35%)`;ch.style.color='white';ch.textContent=sum;
+    s.prepend(ch);while(s.children.length>50)s.removeChild(s.lastChild);
+  }
+
+  function updateStats(){
+    document.getElementById('dice-total').textContent=stats.total;
+    if(stats.total>0){const a=Object.entries(stats.sums).reduce((s,[k,v])=>s+parseInt(k)*v,0)/stats.total;document.getElementById('dice-avg').textContent=a.toFixed(2);}
+    else document.getElementById('dice-avg').textContent='—';
+    const bars=document.getElementById('dice-freqBars');let html='';
+    for(let s=nd;s<=nd*6;s++){const c=stats.sums[s]||0;const p=stats.total>0?(c/stats.total*100).toFixed(1):'0.0';const h=(s-nd)/(nd*5)*120;
+      html+=`<div class="freq-row"><span class="freq-label">${s}</span><div class="freq-bar-bg"><div class="freq-bar-fill" style="width:${p}%;background:hsl(${h},60%,45%)"></div></div><span class="freq-pct">${p}%</span></div>`;}
+    bars.innerHTML=html;document.getElementById('dice-expected').textContent=`Expected avg: ${(nd*3.5).toFixed(1)}`;
+  }
+  setCount(2);
+  return{roll,setCount};
+})();
+
+// ===================== COINS =====================
+const Coins=(()=>{
+  let nc=1,stats={total:0,heads:0};
+  function setCount(n){nc=parseInt(n);reset();}
+  function reset(){
+    stats={total:0,heads:0};
+    ['coin-total','coin-headsPct'].forEach(id=>document.getElementById(id).textContent='0');
+    document.getElementById('coin-headsPct').textContent='0%';
+    ['coin-hBar','coin-tBar'].forEach(id=>{document.getElementById(id).style.width='0%';});
+    ['coin-hPct','coin-tPct'].forEach(id=>{document.getElementById(id).textContent='0%';});
+    document.getElementById('coin-history').innerHTML='<span style="color:var(--text-dim);font-size:0.8rem">No flips yet</span>';
+    document.getElementById('coin-resultNum').textContent='—';document.getElementById('coin-resultNum').style.color='var(--text-dim)';
+    updVis('H');
+  }
+  function updVis(f){const el=document.getElementById('coin-visual');el.className='coin-visual '+(f==='H'?'coin-heads':'coin-tails');el.textContent=f;}
+  function flip(){
+    const el=document.getElementById('coin-visual');el.classList.add('flipping');
+    let f=0;const iv=setInterval(()=>{updVis(Math.random()<0.5?'H':'T');f++;if(f>8){clearInterval(iv);done();}},60);
+  }
+  function done(){
+    document.getElementById('coin-visual').classList.remove('flipping');
+    let h=0;const res=[];
+    for(let i=0;i<nc;i++){const r=Math.random()<0.5?'H':'T';res.push(r);if(r==='H')h++;}
+    stats.total++;stats.heads+=h;
+    if(nc===1){updVis(res[0]);document.getElementById('coin-resultNum').textContent=res[0]==='H'?'Heads':'Tails';document.getElementById('coin-resultNum').style.color=res[0]==='H'?'var(--gold)':'#aaa';document.getElementById('coin-resultInfo').textContent='';}
+    else{updVis(h>nc-h?'H':'T');document.getElementById('coin-resultNum').textContent=h+'H / '+(nc-h)+'T';document.getElementById('coin-resultNum').style.color='var(--gold)';document.getElementById('coin-resultInfo').textContent=res.join(' ');}
+    const tf=stats.total*nc,hp=(stats.heads/tf*100).toFixed(1),tp=(100-parseFloat(hp)).toFixed(1);
+    document.getElementById('coin-total').textContent=tf;document.getElementById('coin-headsPct').textContent=hp+'%';
+    document.getElementById('coin-hBar').style.width=hp+'%';document.getElementById('coin-hPct').textContent=hp+'%';
+    document.getElementById('coin-tBar').style.width=tp+'%';document.getElementById('coin-tPct').textContent=tp+'%';
+    const s=document.getElementById('coin-history');if(stats.total===1)s.innerHTML='';
+    const ch=document.createElement('div');ch.className='history-chip';
+    if(nc===1){ch.style.background=res[0]==='H'?'var(--gold)':'#555';ch.style.color=res[0]==='H'?'#1a1000':'#ccc';ch.textContent=res[0];}
+    else{ch.style.background='var(--bg-elevated)';ch.style.color='var(--gold)';ch.style.border='1px solid var(--border)';ch.textContent=h+'H';}
+    s.prepend(ch);while(s.children.length>50)s.removeChild(s.lastChild);
+  }
+  return{flip,setCount};
+})();
+
+// ===================== CARDS =====================
+const Cards=(()=>{
+  const RK=['A','2','3','4','5','6','7','8','9','10','J','Q','K'],SU=['♥','♦','♠','♣'],RS=new Set(['♥','♦']);
+  let deck=[],drawn=[],sc={};
+  function make(){return SU.flatMap(s=>RK.map(r=>({rank:r,suit:s})));}
+  function shuffle(){
+    deck=make();for(let i=deck.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[deck[i],deck[j]]=[deck[j],deck[i]];}
+    drawn=[];sc={'♥':0,'♦':0,'♠':0,'♣':0};
+    const cv=document.getElementById('card-visual');cv.className='card-display face-down';
+    cv.querySelector('.rank').textContent='';cv.querySelector('.suit').textContent='';
+    document.getElementById('card-drawn').textContent='0';document.getElementById('card-remaining').textContent='52';
+    document.getElementById('card-resultNum').textContent='Shuffled!';document.getElementById('card-resultNum').style.color='var(--accent-blue)';
+    document.getElementById('card-resultInfo').textContent='52 cards ready';
+    ['h','d','s','c'].forEach(x=>{document.getElementById('card-'+x+'Bar').style.width='0%';document.getElementById('card-'+x+'Pct').textContent='0';});
+    document.getElementById('card-history').innerHTML='<span style="color:var(--text-dim);font-size:0.8rem">Deck reshuffled</span>';
+  }
+  function draw(){
+    if(deck.length===0){document.getElementById('card-resultInfo').textContent='Deck empty! Click SHUFFLE.';return;}
+    const card=deck.pop();drawn.push(card);sc[card.suit]++;
+    const red=RS.has(card.suit);
+    const cv=document.getElementById('card-visual');cv.className='card-display '+(red?'red-card':'black-card');
+    cv.querySelector('.rank').textContent=card.rank;cv.querySelector('.suit').textContent=card.suit;
+    document.getElementById('card-resultNum').textContent=card.rank+card.suit;
+    document.getElementById('card-resultNum').style.color=red?'var(--red)':'var(--text-primary)';
+    const p=[red?'red':'black'];if(['J','Q','K'].includes(card.rank))p.push('face card');if(card.rank==='A')p.push('ace');p.push(deck.length+' left');
+    document.getElementById('card-resultInfo').textContent=p.join(' · ');
+    document.getElementById('card-drawn').textContent=drawn.length;document.getElementById('card-remaining').textContent=deck.length;
+    const mx=Math.max(1,...Object.values(sc));const sm={'♥':'h','♦':'d','♠':'s','♣':'c'};
+    SU.forEach(s=>{const k=sm[s];document.getElementById('card-'+k+'Bar').style.width=(sc[s]/mx*100)+'%';document.getElementById('card-'+k+'Pct').textContent=sc[s];});
+    const st=document.getElementById('card-history');if(drawn.length===1)st.innerHTML='';
+    const ch=document.createElement('div');ch.className='history-chip';ch.style.background=red?'#8b2020':'#2a2a3e';ch.style.color='white';ch.textContent=card.rank+card.suit;
+    st.prepend(ch);while(st.children.length>50)st.removeChild(st.lastChild);
+  }
+  shuffle();return{draw,shuffle};
+})();
+
+// ===================== MARBLES =====================
+const Marbles=(()=>{
+  const CL={red:'#e23636',blue:'#4a90d9',green:'#15c96b'};
+  let bag=[],stats={total:0,counts:{}};
+  function setup(){
+    const r=parseInt(document.getElementById('marble-red').value)||0;
+    const b=parseInt(document.getElementById('marble-blue').value)||0;
+    const g=parseInt(document.getElementById('marble-green').value)||0;
+    bag=[];for(let i=0;i<r;i++)bag.push('red');for(let i=0;i<b;i++)bag.push('blue');for(let i=0;i<g;i++)bag.push('green');
+    stats={total:0,counts:{red:0,blue:0,green:0}};renderBag();updStats();
+    document.getElementById('marble-history').innerHTML='<span style="color:var(--text-dim);font-size:0.8rem">Ready</span>';
+    document.getElementById('marble-resultNum').textContent='—';document.getElementById('marble-resultNum').style.color='var(--text-dim)';
+    document.getElementById('marble-resultInfo').textContent=bag.length+' marbles in bag';
+  }
+  function renderBag(di){
+    const ct=document.getElementById('marble-bag');ct.innerHTML='';
+    bag.forEach((c,i)=>{const m=document.createElement('div');m.className='marble'+(di===i?' drawn':'');
+      m.style.background=`radial-gradient(circle at 35% 35%,${CL[c]}dd,${CL[c]}88)`;ct.appendChild(m);});
+  }
+  function draw(){
+    if(bag.length===0){document.getElementById('marble-resultInfo').textContent='Bag empty! Click RESET.';return;}
+    const rep=document.getElementById('marble-replace').checked;
+    const idx=Math.floor(Math.random()*bag.length),color=bag[idx];
+    stats.total++;stats.counts[color]=(stats.counts[color]||0)+1;
+    renderBag(idx);
+    document.getElementById('marble-resultNum').textContent=color[0].toUpperCase()+color.slice(1);
+    document.getElementById('marble-resultNum').style.color=CL[color];
+    if(!rep){bag.splice(idx,1);setTimeout(()=>renderBag(),500);document.getElementById('marble-resultInfo').textContent=bag.length+' remaining (no replacement)';}
+    else document.getElementById('marble-resultInfo').textContent=bag.length+' marbles (with replacement)';
+    updStats();
+    const s=document.getElementById('marble-history');if(stats.total===1)s.innerHTML='';
+    const ch=document.createElement('div');ch.className='history-chip';ch.style.background=CL[color];ch.style.color='white';ch.textContent=color[0].toUpperCase();
+    s.prepend(ch);while(s.children.length>50)s.removeChild(s.lastChild);
+  }
+  function updStats(){
+    document.getElementById('marble-total').textContent=stats.total;document.getElementById('marble-inBag').textContent=bag.length;
+    const bars=document.getElementById('marble-freqBars');let html='';
+    ['red','blue','green'].forEach(c=>{const n=stats.counts[c]||0;const p=stats.total>0?(n/stats.total*100).toFixed(1):'0.0';
+      html+=`<div class="freq-row"><span class="freq-label" style="color:${CL[c]}">${c}</span><div class="freq-bar-bg"><div class="freq-bar-fill" style="width:${p}%;background:${CL[c]}"></div></div><span class="freq-pct">${p}%</span></div>`;});
+    bars.innerHTML=html;
+    const tot=parseInt(document.getElementById('marble-red').value||0)+parseInt(document.getElementById('marble-blue').value||0)+parseInt(document.getElementById('marble-green').value||0);
+    if(tot>0){const rE=(parseInt(document.getElementById('marble-red').value||0)/tot*100).toFixed(1),bE=(parseInt(document.getElementById('marble-blue').value||0)/tot*100).toFixed(1),gE=(parseInt(document.getElementById('marble-green').value||0)/tot*100).toFixed(1);
+      document.getElementById('marble-expected').textContent=`Expected: Red ${rE}% · Blue ${bE}% · Green ${gE}%`;}
+  }
+  setup();return{draw,setup};
+})();
+
+// ===================== CHART HELPERS =====================
+function drawLineChart(id,series,steps,opts={}){
+  const cv=document.getElementById(id),ct=cv.parentElement,dp=2;
+  cv.width=ct.clientWidth*dp;cv.height=280*dp;cv.style.width=ct.clientWidth+'px';cv.style.height='280px';
+  const c=cv.getContext('2d');c.scale(dp,dp);const W=ct.clientWidth,H=280;
+  const pd={t:16,r:16,b:30,l:52},pW=W-pd.l-pd.r,pH=H-pd.t-pd.b;c.clearRect(0,0,W,H);
+  let mn=0,mx=0;series.forEach(s=>s.forEach(v=>{if(v<mn)mn=v;if(v>mx)mx=v;}));
+  const rn=mx-mn||1;mn-=rn*0.08;mx+=rn*0.08;
+  const tX=i=>pd.l+(i/steps)*pW,tY=v=>pd.t+pH-((v-mn)/(mx-mn))*pH;
+  c.strokeStyle='#ffffff10';c.lineWidth=0.5;
+  for(let i=0;i<=4;i++){const v=mn+(mx-mn)*(i/4),y=tY(v);c.beginPath();c.moveTo(pd.l,y);c.lineTo(W-pd.r,y);c.stroke();
+    c.fillStyle='#7a8298';c.font='9px "JetBrains Mono"';c.textAlign='right';c.textBaseline='middle';c.fillText(v.toFixed(opts.dec||0),pd.l-6,y);}
+  if(mn<0&&mx>0){c.strokeStyle='#ffffff25';c.lineWidth=0.8;c.beginPath();c.moveTo(pd.l,tY(0));c.lineTo(W-pd.r,tY(0));c.stroke();}
+  series.forEach(s=>{const f=s[s.length-1],cl=f>=0?[21,201,107]:[226,54,54];c.strokeStyle=`rgba(${cl},0.12)`;c.lineWidth=0.6;
+    c.beginPath();for(let i=0;i<=steps;i++){const x=tX(i),y=tY(s[i]||0);i===0?c.moveTo(x,y):c.lineTo(x,y);}c.stroke();});
+  if(opts.ev!==undefined){c.strokeStyle='#d4a843';c.lineWidth=2;c.setLineDash([5,3]);c.beginPath();
+    for(let i=0;i<=steps;i++){const x=tX(i),y=tY(opts.ev*i);i===0?c.moveTo(x,y):c.lineTo(x,y);}c.stroke();c.setLineDash([]);
+    c.fillStyle='#d4a843';c.font='9px "JetBrains Mono"';c.textAlign='left';c.fillText('Expected',tX(steps*0.55),tY(opts.ev*steps*0.55)-8);}
+  c.fillStyle='#7a8298';c.textAlign='center';c.textBaseline='top';c.font='9px "JetBrains Mono"';
+  for(let i=0;i<=4;i++){const v=Math.round(steps/4*i);c.fillText(v,tX(v),H-pd.b+8);}
+}
+
+function drawHist(id,data){
+  const cv=document.getElementById(id),ct=cv.parentElement,dp=2;
+  cv.width=ct.clientWidth*dp;cv.height=280*dp;cv.style.width=ct.clientWidth+'px';cv.style.height='280px';
+  const c=cv.getContext('2d');c.scale(dp,dp);const W=ct.clientWidth,H=280;
+  const pd={t:16,r:16,b:30,l:52},pW=W-pd.l-pd.r,pH=H-pd.t-pd.b;c.clearRect(0,0,W,H);
+  const mx=Math.max(...data.map(d=>d.c));const bw=Math.min(36,pW/data.length-2);const gp=(pW-bw*data.length)/(data.length+1);
+  data.forEach((d,i)=>{const x=pd.l+gp+(bw+gp)*i;const h=mx>0?(d.c/mx)*pH:0;const y=pd.t+pH-h;
+    c.fillStyle=d.hl?'#d4a843':'#4a90d9';c.fillRect(x,y,bw,h);
+    c.fillStyle='#7a8298';c.font='9px "JetBrains Mono"';c.textAlign='center';c.textBaseline='top';c.fillText(d.l,x+bw/2,H-pd.b+6);
+    if(d.c>0){c.textBaseline='bottom';c.fillText(d.c,x+bw/2,y-2);}});
+}
+
+// ===================== MONTE CARLO =====================
+function runMonteCarlo(sc){({roulette:mcRL,dice:mcDice,coins:mcCoins,cards:mcCards,marbles:mcMarbles})[sc]();}
+
+function mcRL(){
+  const bt=document.getElementById('rl-simBet').value,bs=parseInt(document.getElementById('rl-simSize').value)||10;
+  const ns=parseInt(document.getElementById('rl-simSpins').value)||200,nss=parseInt(document.getElementById('rl-simSessions').value)||40;
+  const cf={red:{p:18,py:1},dozen:{p:12,py:2},straight:{p:1,py:35}}[bt],wp=cf.p/38;
+  const ss=[],fl=[];
+  for(let s=0;s<nss;s++){const se=[0];let b=0;for(let i=0;i<ns;i++){b+=Math.random()<wp?bs*cf.py:-bs;se.push(b);}ss.push(se);fl.push(b);}
+  const avg=fl.reduce((a,b)=>a+b)/fl.length,win=fl.filter(f=>f>0).length;
+  document.getElementById('rl-simAvg').textContent='$'+avg.toFixed(0);document.getElementById('rl-simAvg').style.color=avg>=0?'var(--green-glow)':'var(--red)';
+  document.getElementById('rl-simWin').textContent=((win/nss)*100).toFixed(1)+'%';
+  document.getElementById('rl-simBest').textContent='$'+Math.max(...fl).toFixed(0);document.getElementById('rl-simWorst').textContent='$'+Math.min(...fl).toFixed(0);
+  drawLineChart('rl-simChart',ss,ns,{ev:-bs*((38-cf.p*(cf.py+1))/38)});
+  document.getElementById('rl-simInsight').innerHTML=`<strong>Analysis:</strong> Over ${nss} sessions of ${ns} spins, avg loss was <strong>$${Math.abs(avg).toFixed(0)}</strong>. Only <strong>${win}</strong> (${(win/nss*100).toFixed(1)}%) ended profitable.`;
+}
+
+function mcDice(){
+  const nd=parseInt(document.getElementById('dice-simCount').value),tgt=parseInt(document.getElementById('dice-simTarget').value);
+  const nr=parseInt(document.getElementById('dice-simRolls').value)||500,nss=parseInt(document.getElementById('dice-simSessions').value)||30;
+  function cw(n,t){if(n===1)return(t>=1&&t<=6)?1:0;let w=0;for(let f=1;f<=6;f++)if(t-f>=1)w+=cw(n-1,t-f);return w;}
+  const ways=cw(nd,tgt),tot=Math.pow(6,nd),ep=ways/tot;
+  const ss=[],hc=[];
+  for(let s=0;s<nss;s++){const se=[0];let h=0;for(let i=0;i<nr;i++){let sm=0;for(let d=0;d<nd;d++)sm+=Math.ceil(Math.random()*6);if(sm===tgt)h++;se.push(h/(i+1)*100);}ss.push(se);hc.push(h);}
+  const ah=hc.reduce((a,b)=>a+b)/hc.length,sd=Math.sqrt(hc.reduce((s,v)=>s+(v-ah)**2,0)/hc.length);
+  document.getElementById('dice-simObs').textContent=(ah/nr*100).toFixed(2)+'%';document.getElementById('dice-simExp').textContent=(ep*100).toFixed(2)+'%';
+  document.getElementById('dice-simHits').textContent=ah.toFixed(1)+'/'+nr;document.getElementById('dice-simSD').textContent=sd.toFixed(1);
+  drawLineChart('dice-simChart',ss,nr,{dec:1});
+  document.getElementById('dice-simInsight').innerHTML=`<strong>Sum ${tgt} with ${nd} dice:</strong> Theoretical <strong>${(ep*100).toFixed(2)}%</strong> (${ways}/${tot}). Observed <strong>${(ah/nr*100).toFixed(2)}%</strong>.`;
+}
+
+function mcCoins(){
+  const nc=parseInt(document.getElementById('coin-simCoins').value)||10,tgt=parseInt(document.getElementById('coin-simTarget').value);
+  const nf=parseInt(document.getElementById('coin-simFlips').value)||500,nss=parseInt(document.getElementById('coin-simSessions').value)||30;
+  function bp(n,k){if(k<0||k>n)return 0;let c=1;for(let i=0;i<k;i++)c=c*(n-i)/(i+1);return c*Math.pow(0.5,n);}
+  const ep=bp(nc,tgt),hc=[],hd={};
+  for(let s=0;s<nss;s++){let hits=0;for(let i=0;i<nf;i++){let h=0;for(let c=0;c<nc;c++)if(Math.random()<0.5)h++;if(h===tgt)hits++;hd[h]=(hd[h]||0)+1;}hc.push(hits);}
+  const ah=hc.reduce((a,b)=>a+b)/hc.length,sd=Math.sqrt(hc.reduce((s,v)=>s+(v-ah)**2,0)/hc.length);
+  document.getElementById('coin-simObs').textContent=(ah/nf*100).toFixed(2)+'%';document.getElementById('coin-simExp').textContent=(ep*100).toFixed(2)+'%';
+  document.getElementById('coin-simHits').textContent=ah.toFixed(1)+'/'+nf;document.getElementById('coin-simSD').textContent=sd.toFixed(1);
+  const d=[];for(let k=0;k<=nc;k++)d.push({l:String(k),c:hd[k]||0,hl:k===tgt});drawHist('coin-simChart',d);
+  document.getElementById('coin-simInsight').innerHTML=`<strong>${nc} coins, target ${tgt} heads:</strong> Theoretical <strong>${(ep*100).toFixed(2)}%</strong>. The histogram shows the binomial bell curve.`;
+}
+
+function mcCards(){
+  const tp=document.getElementById('card-simType').value,nd=Math.min(parseInt(document.getElementById('card-simDraws').value)||10,52);
+  const nss=parseInt(document.getElementById('card-simSessions').value)||1000;
+  const cf={suit:{c:13,n:'Hearts'},face:{c:12,n:'face cards'},ace:{c:4,n:'Aces'}}[tp];
+  const hc=[];
+  for(let s=0;s<nss;s++){const dk=[];for(let i=0;i<52;i++)dk.push(i);for(let i=51;i>0;i--){const j=Math.floor(Math.random()*(i+1));[dk[i],dk[j]]=[dk[j],dk[i]];}
+    let h=0;for(let d=0;d<nd;d++){const c=dk[d];if(tp==='suit'&&c<13)h++;else if(tp==='face'&&[10,11,12,23,24,25,36,37,38,49,50,51].includes(c))h++;else if(tp==='ace'&&[0,13,26,39].includes(c))h++;}hc.push(h);}
+  const avg=hc.reduce((a,b)=>a+b)/hc.length,exp=cf.c/52*nd,mx=Math.max(...hc),mn=Math.min(...hc);
+  document.getElementById('card-simHits').textContent=avg.toFixed(2);document.getElementById('card-simExp').textContent=exp.toFixed(2);
+  document.getElementById('card-simMax').textContent=mx;document.getElementById('card-simMin').textContent=mn;
+  const hd={};hc.forEach(h=>{hd[h]=(hd[h]||0)+1;});const d=[];for(let k=mn;k<=mx;k++)d.push({l:String(k),c:hd[k]||0,hl:Math.abs(k-exp)<0.5});
+  drawHist('card-simChart',d);
+  document.getElementById('card-simInsight').innerHTML=`<strong>${nd} cards, counting ${cf.n}:</strong> Expected <strong>${exp.toFixed(2)}</strong>. Observed <strong>${avg.toFixed(2)}</strong>. This is a hypergeometric distribution.`;
+}
+
+function mcMarbles(){
+  const r=parseInt(document.getElementById('mb-simRed').value)||0,b=parseInt(document.getElementById('mb-simBlue').value)||0,g=parseInt(document.getElementById('mb-simGreen').value)||0;
+  const tot=r+b+g;if(tot===0)return;
+  const tgt=document.getElementById('mb-simTarget').value,nd=parseInt(document.getElementById('mb-simDraws').value)||100,nss=parseInt(document.getElementById('mb-simSessions').value)||50;
+  const tc={red:r,blue:b,green:g}[tgt]||0,ep=tc/tot;
+  const ss=[],hc=[];
+  for(let s=0;s<nss;s++){const se=[0];let h=0;for(let i=0;i<nd;i++){const rl=Math.random();const c=rl<r/tot?'red':rl<(r+b)/tot?'blue':'green';if(c===tgt)h++;se.push(h/(i+1)*100);}ss.push(se);hc.push(h);}
+  const ah=hc.reduce((a,b)=>a+b)/hc.length,sd=Math.sqrt(hc.reduce((s,v)=>s+(v-ah)**2,0)/hc.length);
+  document.getElementById('mb-simObs').textContent=(ah/nd*100).toFixed(2)+'%';document.getElementById('mb-simExp').textContent=(ep*100).toFixed(2)+'%';
+  document.getElementById('mb-simHits').textContent=ah.toFixed(1)+'/'+nd;document.getElementById('mb-simSD').textContent=sd.toFixed(1);
+  drawLineChart('mb-simChart',ss,nd,{dec:1});
+  document.getElementById('mb-simInsight').innerHTML=`<strong>${tgt} marbles (with replacement):</strong> Expected <strong>${(ep*100).toFixed(2)}%</strong> (${tc}/${tot}). Observed <strong>${(ah/nd*100).toFixed(2)}%</strong>.`;
+}
+
+</script>
 </body>
 </html>
